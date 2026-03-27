@@ -224,12 +224,33 @@ struct WeekDayCell: View {
 struct MonthCalendarView: View {
     let store: HabitStore
     @Binding var showPaywall: Bool
+    @State private var monthOffset: Int = 0
+
+    private var displayedMonth: Date {
+        Calendar.current.date(byAdding: .month, value: monthOffset, to: Date()) ?? Date()
+    }
+
+    private var canGoForward: Bool {
+        monthOffset < 0
+    }
+
+    private var canGoBack: Bool {
+        guard let data = store.habitData else { return false }
+        let calendar = Calendar.current
+        let targetMonth = calendar.date(byAdding: .month, value: monthOffset - 1, to: Date()) ?? Date()
+        let startMonth = calendar.dateComponents([.year, .month], from: data.startDate)
+        let targetComponents = calendar.dateComponents([.year, .month], from: targetMonth)
+        if let sy = startMonth.year, let sm = startMonth.month,
+           let ty = targetComponents.year, let tm = targetComponents.month {
+            return ty > sy || (ty == sy && tm >= sm)
+        }
+        return false
+    }
 
     private var cells: [MonthCell] {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: today))!
-        let range = calendar.range(of: .day, in: .month, for: today)!
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: displayedMonth))!
+        let range = calendar.range(of: .day, in: .month, for: startOfMonth)!
         let firstWeekday = calendar.component(.weekday, from: startOfMonth)
         let blankDays = (firstWeekday - calendar.firstWeekday + 7) % 7
 
@@ -250,8 +271,44 @@ struct MonthCalendarView: View {
         let today = Calendar.current.startOfDay(for: Date())
 
         VStack(spacing: 12) {
-            Text(today.formatted(.dateTime.month(.wide).year()))
-                .font(.subheadline.weight(.semibold))
+            HStack {
+                Button {
+                    if !store.isPremium && monthOffset <= 0 {
+                        showPaywall = true
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            monthOffset -= 1
+                        }
+                    }
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(canGoBack ? .primary : .quaternary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .disabled(!canGoBack)
+
+                Spacer()
+
+                Text(displayedMonth.formatted(.dateTime.month(.wide).year()))
+                    .font(.subheadline.weight(.semibold))
+
+                Spacer()
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        monthOffset += 1
+                    }
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(canGoForward ? .primary : .quaternary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .disabled(!canGoForward)
+            }
 
             HStack(spacing: 0) {
                 ForEach(["S", "M", "T", "W", "T", "F", "S"], id: \.self) { d in
