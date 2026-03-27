@@ -248,11 +248,6 @@ struct OnboardingView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
-            Text("QuitOne is not medical advice and does not replace professional health services or treatment.")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-                .padding(.top, 8)
         }
         .frame(maxWidth: .infinity)
     }

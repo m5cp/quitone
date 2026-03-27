@@ -5,18 +5,13 @@ struct HomeView: View {
     @State private var checkInBounce: Int = 0
     @State private var showSlipConfirm: Bool = false
     @State private var insightIndex: Int = 0
-    @State private var showAddHabit: Bool = false
-    @State private var showPaywall: Bool = false
 
-    private var data: HabitData? { store.activeHabit }
+    private var data: HabitData? { store.habit }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 28) {
-                    if store.habits.count > 1 {
-                        habitSwitcher
-                    }
                     headerSection
                     heroCard
                     actionButtons
@@ -36,54 +31,10 @@ struct HomeView: View {
             } message: {
                 Text("One day doesn't erase your progress. Your total progress is preserved.")
             }
-            .sheet(isPresented: $showAddHabit) {
-                AddHabitView(store: store)
-            }
-            .sheet(isPresented: $showPaywall) {
-                PaywallView()
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        if store.isPremium {
-                            showAddHabit = true
-                        } else {
-                            showPaywall = true
-                        }
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.green)
-                    }
-                }
-            }
             .onAppear {
                 insightIndex = Int.random(in: 0..<insightMessages.count)
             }
         }
-    }
-
-    private var habitSwitcher: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                ForEach(store.habits) { habit in
-                    Button {
-                        withAnimation(.snappy) {
-                            store.switchActiveHabit(to: habit.id)
-                        }
-                    } label: {
-                        Text(habit.habitName)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(store.activeHabitId == habit.id ? .white : .primary)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .background(store.activeHabitId == habit.id ? Color.green : Color(.secondarySystemGroupedBackground))
-                            .clipShape(.capsule)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .contentMargins(.horizontal, 0)
     }
 
     private var headerSection: some View {
@@ -101,7 +52,7 @@ struct HomeView: View {
     private var statusMessage: String {
         guard let data else { return "" }
         if data.todayStatus == .slipped {
-            return slipRecoveryMessages.randomElement() ?? "Start again today."
+            return slipRecoveryMessages[insightIndex % slipRecoveryMessages.count]
         }
         if data.hasCheckedInToday {
             return "Checked in today. Great work."
@@ -236,5 +187,4 @@ struct HomeView: View {
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(.rect(cornerRadius: 12))
     }
-
 }

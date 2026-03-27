@@ -9,23 +9,25 @@ struct PaywallView: View {
                 VStack(spacing: 32) {
                     Spacer().frame(height: 20)
 
-                    Image(systemName: "star.circle.fill")
+                    Image(systemName: "chart.line.uptrend.xyaxis.circle.fill")
                         .font(.system(size: 64))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(.green)
 
                     VStack(spacing: 8) {
-                        Text("Upgrade to QuitOne Pro")
+                        Text("Go deeper with your progress")
                             .font(.title2.bold())
-                        Text("Get more from your progress")
+                        Text("See how far you've come")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
 
                     VStack(alignment: .leading, spacing: 16) {
-                        benefitRow(icon: "list.bullet.circle.fill", text: "Track multiple habits", color: .green)
                         benefitRow(icon: "calendar.circle.fill", text: "Full history access", color: .blue)
-                        benefitRow(icon: "chart.line.uptrend.xyaxis.circle.fill", text: "Deeper insights & trends", color: .orange)
-                        benefitRow(icon: "square.and.arrow.up.circle.fill", text: "Export your progress", color: .purple)
+                        benefitRow(icon: "hand.tap.fill", text: "Interactive calendar", color: .green)
+                        benefitRow(icon: "chart.bar.xaxis", text: "Weekly & monthly summaries", color: .orange)
+                        benefitRow(icon: "chart.line.uptrend.xyaxis", text: "Insights & trends", color: .purple)
+                        benefitRow(icon: "flag.fill", text: "Milestones & progress tracking", color: .blue)
+                        benefitRow(icon: "square.and.arrow.up", text: "Export your progress", color: .green)
                     }
                     .padding(20)
                     .background(Color(.secondarySystemGroupedBackground))

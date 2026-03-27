@@ -6,20 +6,15 @@ struct ProfileView: View {
     @State private var showEditSpend: Bool = false
     @State private var showEditDate: Bool = false
     @State private var showPaywall: Bool = false
-    @State private var showDeleteHabitAlert: Bool = false
-    @State private var habitToDelete: String?
     @State private var editStartDate: Date = Date()
     @State private var editSpendText: String = ""
     @State private var showCustomSpendField: Bool = false
 
-    private var data: HabitData? { store.activeHabit }
+    private var data: HabitData? { store.habit }
 
     var body: some View {
         NavigationStack {
             List {
-                if store.habits.count > 1 {
-                    habitsListSection
-                }
                 if let data {
                     habitSection(data: data)
                 }
@@ -34,16 +29,6 @@ struct ProfileView: View {
             } message: {
                 Text("This will permanently remove all your progress. This cannot be undone.")
             }
-            .alert("Remove Habit?", isPresented: $showDeleteHabitAlert) {
-                Button("Remove", role: .destructive) {
-                    if let id = habitToDelete {
-                        store.deleteHabit(id: id)
-                    }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This will permanently remove this habit and its progress.")
-            }
             .sheet(isPresented: $showEditSpend) {
                 editSpendSheet
             }
@@ -53,38 +38,6 @@ struct ProfileView: View {
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
             }
-        }
-    }
-
-    private var habitsListSection: some View {
-        Section {
-            ForEach(store.habits) { habit in
-                Button {
-                    store.switchActiveHabit(to: habit.id)
-                } label: {
-                    HStack {
-                        Text(habit.habitName)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        if store.activeHabitId == habit.id {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(.green)
-                        }
-                    }
-                }
-                .swipeActions(edge: .trailing) {
-                    if store.habits.count > 1 {
-                        Button(role: .destructive) {
-                            habitToDelete = habit.id
-                            showDeleteHabitAlert = true
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
-                }
-            }
-        } header: {
-            Text("Your Habits")
         }
     }
 
@@ -141,7 +94,7 @@ struct ProfileView: View {
                     .foregroundStyle(.secondary)
             }
         } header: {
-            Text("Active Habit")
+            Text("Your Habit")
         }
     }
 

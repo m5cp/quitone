@@ -4,114 +4,77 @@ import UserNotifications
 @Observable
 @MainActor
 class HabitStore {
-    var habits: [HabitData] = []
-    var activeHabitId: String?
+    var habit: HabitData?
     var hasCompletedOnboarding: Bool = false
     var isPremium: Bool = false
 
-    private let habitsKey = "habits"
-    private let activeHabitIdKey = "activeHabitId"
+    private let habitKey = "habitData_v2"
     private let onboardingKey = "hasCompletedOnboarding"
     private let premiumKey = "isPremium"
-
-    var activeHabit: HabitData? {
-        guard let id = activeHabitId else { return habits.first }
-        return habits.first { $0.id == id } ?? habits.first
-    }
-
-    var activeHabitIndex: Int? {
-        guard let id = activeHabitId ?? habits.first?.id else { return nil }
-        return habits.firstIndex { $0.id == id }
-    }
 
     init() {
         hasCompletedOnboarding = UserDefaults.standard.bool(forKey: onboardingKey)
         isPremium = UserDefaults.standard.bool(forKey: premiumKey)
         loadData()
-        if activeHabitId == nil, let first = habits.first {
-            activeHabitId = first.id
-        }
     }
 
     func completeOnboarding(data: HabitData) {
-        habits = [data]
-        activeHabitId = data.id
+        habit = data
         hasCompletedOnboarding = true
         UserDefaults.standard.set(true, forKey: onboardingKey)
         saveData()
         scheduleNotification()
     }
 
-    func addHabit(data: HabitData) {
-        habits.append(data)
-        activeHabitId = data.id
-        saveData()
-    }
-
-    func switchActiveHabit(to id: String) {
-        activeHabitId = id
-        UserDefaults.standard.set(id, forKey: activeHabitIdKey)
-    }
-
-    func deleteHabit(id: String) {
-        habits.removeAll { $0.id == id }
-        if activeHabitId == id {
-            activeHabitId = habits.first?.id
-        }
-        saveData()
-    }
-
     func checkInToday() {
-        guard let idx = activeHabitIndex else { return }
+        guard habit != nil else { return }
         let today = HabitData.dateString(from: Date())
-        guard !habits[idx].completionHistory.contains(where: { $0.dateString == today }) else { return }
-        habits[idx].completionHistory.append(DayEntry(dateString: today, status: .completed))
+        guard !(habit!.completionHistory.contains(where: { $0.dateString == today })) else { return }
+        habit!.completionHistory.append(DayEntry(dateString: today, status: .completed))
         saveData()
     }
 
     func slipToday() {
-        guard let idx = activeHabitIndex else { return }
+        guard habit != nil else { return }
         let today = HabitData.dateString(from: Date())
-        habits[idx].completionHistory.removeAll { $0.dateString == today }
-        habits[idx].completionHistory.append(DayEntry(dateString: today, status: .slipped))
+        habit!.completionHistory.removeAll { $0.dateString == today }
+        habit!.completionHistory.append(DayEntry(dateString: today, status: .slipped))
         saveData()
     }
 
     func updateDailySpend(_ amount: Double) {
-        guard let idx = activeHabitIndex else { return }
-        habits[idx].dailySpend = amount
+        guard habit != nil else { return }
+        habit!.dailySpend = amount
         saveData()
     }
 
     func updateStartDate(_ date: Date) {
-        guard let idx = activeHabitIndex else { return }
-        habits[idx].startDate = date
+        guard habit != nil else { return }
+        habit!.startDate = date
         saveData()
     }
 
     func updateGoal(_ goal: GoalType) {
-        guard let idx = activeHabitIndex else { return }
-        habits[idx].goalType = goal
+        guard habit != nil else { return }
+        habit!.goalType = goal
         saveData()
     }
 
     func resetAllData() {
-        habits = []
-        activeHabitId = nil
+        habit = nil
         hasCompletedOnboarding = false
         UserDefaults.standard.set(false, forKey: onboardingKey)
-        UserDefaults.standard.removeObject(forKey: habitsKey)
-        UserDefaults.standard.removeObject(forKey: activeHabitIdKey)
+        UserDefaults.standard.removeObject(forKey: habitKey)
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
 
     func statusForDate(_ date: Date) -> DayStatus? {
         let dateStr = HabitData.dateString(from: date)
-        return activeHabit?.completionHistory.first { $0.dateString == dateStr }?.status
+        return habit?.completionHistory.first { $0.dateString == dateStr }?.status
     }
 
     func bestRun() -> Int {
-        guard let data = activeHabit else { return 0 }
+        guard let data = habit else { return 0 }
         let sorted = data.completionHistory
             .filter { $0.status == .completed }
             .compactMap { $0.date }
@@ -136,7 +99,7 @@ class HabitStore {
     }
 
     func completionRate(last days: Int) -> Double {
-        guard let data = activeHabit else { return 0 }
+        guard let data = habit else { return 0 }
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         var completed = 0
@@ -150,34 +113,91 @@ class HabitStore {
         return days > 0 ? Double(completed) / Double(days) : 0
     }
 
-    func weeklySpendAvoided() -> [Double] {
-        guard let data = activeHabit else { return [] }
+    func daysOnTrack(last days: Int) -> Int {
+        guard let data = habit else { return 0 }
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        var weeks: [Double] = []
-        for w in 0..<4 {
-            var total: Double = 0
-            for d in 0..<7 {
-                let dayOffset = -(w * 7 + d)
-                guard let date = calendar.date(byAdding: .day, value: dayOffset, to: today) else { continue }
-                let dateStr = HabitData.dateString(from: date)
-                if data.completionHistory.first(where: { $0.dateString == dateStr })?.status == .completed {
-                    total += data.dailySpend
-                }
+        var count = 0
+        for i in 0..<days {
+            guard let date = calendar.date(byAdding: .day, value: -i, to: today) else { continue }
+            let dateStr = HabitData.dateString(from: date)
+            if data.completionHistory.first(where: { $0.dateString == dateStr })?.status == .completed {
+                count += 1
             }
-            weeks.insert(total, at: 0)
         }
-        return weeks
+        return count
     }
 
-    func scheduleNotification() {
-        let center = UNUserNotificationCenter.current()
-        center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
-            guard granted else { return }
-            Task { @MainActor in
-                self.setupDailyNotification()
+    func savedAmount(last days: Int) -> Double {
+        guard let data = habit else { return 0 }
+        return Double(daysOnTrack(last: days)) * data.dailySpend
+    }
+
+    func previousPeriodDaysOnTrack(last days: Int) -> Int {
+        guard let data = habit else { return 0 }
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var count = 0
+        for i in days..<(days * 2) {
+            guard let date = calendar.date(byAdding: .day, value: -i, to: today) else { continue }
+            let dateStr = HabitData.dateString(from: date)
+            if data.completionHistory.first(where: { $0.dateString == dateStr })?.status == .completed {
+                count += 1
             }
         }
+        return count
+    }
+
+    func longestStreak(last days: Int) -> Int {
+        guard let data = habit else { return 0 }
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var best = 0
+        var current = 0
+
+        for i in stride(from: days - 1, through: 0, by: -1) {
+            guard let date = calendar.date(byAdding: .day, value: -i, to: today) else { continue }
+            let dateStr = HabitData.dateString(from: date)
+            if data.completionHistory.first(where: { $0.dateString == dateStr })?.status == .completed {
+                current += 1
+                best = max(best, current)
+            } else {
+                current = 0
+            }
+        }
+        return best
+    }
+
+    func nextMilestone() -> Int? {
+        guard let data = habit else { return nil }
+        let run = data.currentRunDays
+        let milestones = [7, 30, 60, 100, 200, 365]
+        return milestones.first { $0 > run }
+    }
+
+    func daysSinceStart() -> Int {
+        guard let data = habit else { return 0 }
+        return max(1, Calendar.current.dateComponents([.day], from: data.startDate, to: Date()).day ?? 0)
+    }
+
+    func exportProgressText() -> String {
+        guard let data = habit else { return "" }
+        var lines: [String] = []
+        lines.append("QuitOne Progress Export")
+        lines.append("Habit: \(data.habitName)")
+        lines.append("Start Date: \(data.startDate.formatted(date: .long, time: .omitted))")
+        lines.append("Current Run: \(data.currentRunDays) days")
+        lines.append("Total Progress: \(data.totalProgressDays) days")
+        lines.append("Estimated Saved: $\(Int(data.totalSaved))")
+        lines.append("Best Streak: \(bestRun()) days")
+        lines.append("")
+        lines.append("Daily Log:")
+        let sorted = data.completionHistory.sorted { $0.dateString < $1.dateString }
+        for entry in sorted {
+            let symbol = entry.status == .completed ? "✓" : "✗"
+            lines.append("\(entry.dateString): \(symbol)")
+        }
+        return lines.joined(separator: "\n")
     }
 
     var notificationsEnabled: Bool {
@@ -188,6 +208,16 @@ class HabitStore {
                 scheduleNotification()
             } else {
                 UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+            }
+        }
+    }
+
+    func scheduleNotification() {
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            guard granted else { return }
+            Task { @MainActor in
+                self.setupDailyNotification()
             }
         }
     }
@@ -221,25 +251,24 @@ class HabitStore {
     }
 
     private func saveData() {
-        if let encoded = try? JSONEncoder().encode(habits) {
-            UserDefaults.standard.set(encoded, forKey: habitsKey)
-        }
-        if let id = activeHabitId {
-            UserDefaults.standard.set(id, forKey: activeHabitIdKey)
+        if let encoded = try? JSONEncoder().encode(habit) {
+            UserDefaults.standard.set(encoded, forKey: habitKey)
         }
     }
 
     private func loadData() {
-        if let saved = UserDefaults.standard.data(forKey: habitsKey),
-           let decoded = try? JSONDecoder().decode([HabitData].self, from: saved) {
-            habits = decoded
-            activeHabitId = UserDefaults.standard.string(forKey: activeHabitIdKey) ?? decoded.first?.id
+        if let saved = UserDefaults.standard.data(forKey: habitKey),
+           let decoded = try? JSONDecoder().decode(HabitData.self, from: saved) {
+            habit = decoded
+        } else if let oldData = UserDefaults.standard.data(forKey: "habits"),
+                  let oldList = try? JSONDecoder().decode([HabitData].self, from: oldData),
+                  let first = oldList.first {
+            habit = first
+            saveData()
         } else if let oldData = UserDefaults.standard.data(forKey: "habitData"),
                   let old = try? JSONDecoder().decode(HabitData.self, from: oldData) {
-            habits = [old]
-            activeHabitId = old.id
+            habit = old
             saveData()
-            UserDefaults.standard.removeObject(forKey: "habitData")
         }
     }
 }
