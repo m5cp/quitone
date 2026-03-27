@@ -1,2 +1,0 @@
-# quitone
-Created by Rork
