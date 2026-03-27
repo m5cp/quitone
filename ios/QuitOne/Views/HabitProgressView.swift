@@ -97,6 +97,12 @@ struct HabitProgressView: View {
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 160)
+                .onChange(of: viewMode) { _, newValue in
+                    if newValue == .month && !store.isPremium {
+                        viewMode = .week
+                        showPaywall = true
+                    }
+                }
             }
 
             if viewMode == .week {
@@ -216,31 +222,39 @@ struct HabitProgressView: View {
     }
 
     private func lockedInsightsPreview(data: HabitData) -> some View {
-        VStack(spacing: 12) {
-            insightRow(icon: "chart.line.uptrend.xyaxis", title: "7-Day Success Rate", value: "—", color: .secondary)
-            insightRow(icon: "calendar.badge.clock", title: "30-Day Success Rate", value: "—", color: .secondary)
-            insightRow(icon: "dollarsign.arrow.trianglehead.counterclockwise.rotate.90", title: "Weekly Savings Trend", value: "—", color: .secondary)
-            insightRow(icon: "chart.bar.fill", title: "Avg Days On Track / Week", value: "—", color: .secondary)
-        }
-        .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(.rect(cornerRadius: 14))
-        .overlay {
-            Button {
-                showPaywall = true
-            } label: {
-                VStack(spacing: 8) {
-                    Image(systemName: "lock.fill")
-                        .font(.title2)
-                    Text("Unlock with Pro")
-                        .font(.subheadline.weight(.medium))
+        Button {
+            showPaywall = true
+        } label: {
+            VStack(spacing: 0) {
+                VStack(spacing: 12) {
+                    insightRow(icon: "chart.line.uptrend.xyaxis", title: "7-Day Success Rate", value: "—", color: Color(.quaternaryLabel))
+                    insightRow(icon: "calendar.badge.clock", title: "30-Day Success Rate", value: "—", color: Color(.quaternaryLabel))
+                    insightRow(icon: "dollarsign.arrow.trianglehead.counterclockwise.rotate.90", title: "Weekly Savings Trend", value: "—", color: Color(.quaternaryLabel))
+                    insightRow(icon: "chart.bar.fill", title: "Avg Days On Track / Week", value: "—", color: Color(.quaternaryLabel))
                 }
-                .foregroundStyle(.primary)
                 .padding(16)
-                .background(.ultraThinMaterial)
-                .clipShape(.rect(cornerRadius: 12))
+                .blur(radius: 3)
+
+                Divider()
+
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.orange)
+                    Text("Unlock Insights with Pro")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(16)
             }
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(.rect(cornerRadius: 14))
         }
+        .buttonStyle(.plain)
     }
 
     private func insightRow(icon: String, title: String, value: String, color: Color) -> some View {

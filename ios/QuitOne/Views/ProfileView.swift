@@ -198,6 +198,13 @@ struct ProfileView: View {
                 Label("Privacy Policy", systemImage: "hand.raised.fill")
                     .foregroundStyle(.blue)
             }
+
+            NavigationLink {
+                DisclaimerView()
+            } label: {
+                Label("Disclaimer", systemImage: "info.circle.fill")
+                    .foregroundStyle(.blue)
+            }
         } header: {
             Text("Help")
         }
@@ -210,8 +217,6 @@ struct ProfileView: View {
             } label: {
                 Label("Reset All Data", systemImage: "trash.fill")
             }
-        } footer: {
-            Text("QuitOne is not medical advice and does not replace professional health services or treatment.")
         }
     }
 

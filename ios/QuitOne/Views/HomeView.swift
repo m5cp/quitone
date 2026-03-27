@@ -21,7 +21,6 @@ struct HomeView: View {
                     heroCard
                     actionButtons
                     insightCard
-                    disclaimerText
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
@@ -238,11 +237,4 @@ struct HomeView: View {
         .clipShape(.rect(cornerRadius: 12))
     }
 
-    private var disclaimerText: some View {
-        Text("QuitOne is not medical advice and does not replace professional health services or treatment.")
-            .font(.caption2)
-            .foregroundStyle(.tertiary)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, 8)
-    }
 }
