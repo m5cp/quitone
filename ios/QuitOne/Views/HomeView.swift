@@ -5,34 +5,86 @@ struct HomeView: View {
     @State private var checkInBounce: Int = 0
     @State private var showSlipConfirm: Bool = false
     @State private var insightIndex: Int = 0
+    @State private var showAddHabit: Bool = false
+    @State private var showPaywall: Bool = false
 
-    private var data: HabitData? { store.habitData }
+    private var data: HabitData? { store.activeHabit }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 28) {
-                headerSection
-                heroCard
-                actionButtons
-                insightCard
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 28) {
+                    if store.habits.count > 1 {
+                        habitSwitcher
+                    }
+                    headerSection
+                    heroCard
+                    actionButtons
+                    insightCard
+                    disclaimerText
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 32)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 32)
-        }
-        .background(Color(.systemBackground))
-        .sensoryFeedback(.success, trigger: checkInBounce)
-        .confirmationDialog("Had a slip?", isPresented: $showSlipConfirm, titleVisibility: .visible) {
-            Button("Yes, but I'm keeping going") {
-                store.slipToday()
+            .background(Color(.systemBackground))
+            .sensoryFeedback(.success, trigger: checkInBounce)
+            .confirmationDialog("Had a slip?", isPresented: $showSlipConfirm, titleVisibility: .visible) {
+                Button("Yes, but I'm keeping going") {
+                    store.slipToday()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("One day doesn't erase your progress. Your total progress is preserved.")
             }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("One day doesn't erase your progress. Your total progress is preserved.")
+            .sheet(isPresented: $showAddHabit) {
+                AddHabitView(store: store)
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        if store.isPremium {
+                            showAddHabit = true
+                        } else {
+                            showPaywall = true
+                        }
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(.green)
+                    }
+                }
+            }
+            .onAppear {
+                insightIndex = Int.random(in: 0..<insightMessages.count)
+            }
         }
-        .onAppear {
-            insightIndex = Int.random(in: 0..<insightMessages.count)
+    }
+
+    private var habitSwitcher: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(store.habits) { habit in
+                    Button {
+                        withAnimation(.snappy) {
+                            store.switchActiveHabit(to: habit.id)
+                        }
+                    } label: {
+                        Text(habit.habitName)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(store.activeHabitId == habit.id ? .white : .primary)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(store.activeHabitId == habit.id ? Color.green : Color(.secondarySystemGroupedBackground))
+                            .clipShape(.capsule)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
+        .contentMargins(.horizontal, 0)
     }
 
     private var headerSection: some View {
@@ -91,8 +143,8 @@ struct HomeView: View {
                 )
             }
 
-            if let metric = metricLine {
-                Text(metric)
+            if let data, data.dailySpend > 0 {
+                Text("$\(Int(data.totalSaved)) saved")
                     .font(.headline)
                     .foregroundStyle(.green)
             }
@@ -113,26 +165,6 @@ struct HomeView: View {
                 .font(.subheadline.weight(.semibold))
         }
         .frame(maxWidth: .infinity)
-    }
-
-    private var metricLine: String? {
-        guard let data else { return nil }
-        switch data.habitType {
-        case .money:
-            guard let spend = data.dailySpend, spend > 0 else { return nil }
-            let saved = data.totalSaved
-            return "$\(Int(saved)) saved"
-        case .time:
-            let total = data.totalTimeReclaimed
-            let hours = total / 60
-            let mins = total % 60
-            if hours > 0 {
-                return "\(hours)h \(mins)m reclaimed"
-            }
-            return "\(mins)m reclaimed"
-        case .identity:
-            return "You're building consistency"
-        }
     }
 
     private var actionButtons: some View {
@@ -204,5 +236,13 @@ struct HomeView: View {
         .padding(16)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(.rect(cornerRadius: 12))
+    }
+
+    private var disclaimerText: some View {
+        Text("QuitOne is not medical advice and does not replace professional health services or treatment.")
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 8)
     }
 }

@@ -1,14 +1,15 @@
 import SwiftUI
 
-struct OnboardingView: View {
+struct AddHabitView: View {
     let store: HabitStore
-    @State private var step: Int = 1
+    @Environment(\.dismiss) private var dismiss
     @State private var selectedHabit: HabitOption?
     @State private var customHabitName: String = ""
     @State private var dailySpend: Double = 10
     @State private var customSpendText: String = ""
     @State private var showCustomSpend: Bool = false
     @State private var goalType: GoalType = .stop
+    @State private var step: Int = 1
 
     private var habitName: String {
         selectedHabit?.name ?? customHabitName
@@ -19,50 +20,71 @@ struct OnboardingView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            progressBar
-
+        NavigationStack {
             ScrollView {
                 VStack(spacing: 32) {
                     switch step {
-                    case 1: habitSelectionStep
-                    case 2: moneyStep
+                    case 1: habitStep
+                    case 2: spendStep
                     case 3: goalStep
-                    case 4: readyStep
                     default: EmptyView()
                     }
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 40)
+                .padding(.top, 24)
                 .padding(.bottom, 100)
             }
             .scrollDismissesKeyboard(.interactively)
-
-            bottomButton
-        }
-        .background(Color(.systemBackground))
-        .animation(.smooth(duration: 0.3), value: step)
-    }
-
-    private var progressBar: some View {
-        HStack(spacing: 6) {
-            ForEach(1...4, id: \.self) { i in
-                Capsule()
-                    .fill(i <= step ? Color.green : Color(.tertiarySystemFill))
-                    .frame(height: 4)
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 0) {
+                    Divider()
+                    Button {
+                        if step < 3 {
+                            withAnimation { step += 1 }
+                        } else {
+                            addHabit()
+                        }
+                    } label: {
+                        Text(step == 3 ? "Add Habit" : "Continue")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(canAdvance ? Color.green : Color(.tertiarySystemFill))
+                            .clipShape(.rect(cornerRadius: 14))
+                    }
+                    .disabled(!canAdvance)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 16)
+                }
+                .background(.bar)
+            }
+            .navigationTitle("Add Habit")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 16)
     }
 
-    private var habitSelectionStep: some View {
+    private var canAdvance: Bool {
+        switch step {
+        case 1: return selectedHabit != nil || !customHabitName.isEmpty
+        default: return true
+        }
+    }
+
+    private var habitStep: some View {
         VStack(alignment: .leading, spacing: 24) {
-            Text("What would you like\nto change?")
-                .font(.title.bold())
+            Text("What habit would you\nlike to track?")
+                .font(.title2.bold())
+
+            let existing = Set(store.habits.map(\.habitName))
 
             VStack(spacing: 10) {
-                ForEach(allHabitOptions) { option in
+                ForEach(allHabitOptions.filter { !existing.contains($0.name) }) { option in
                     Button {
                         withAnimation(.snappy) {
                             selectedHabit = option
@@ -128,14 +150,10 @@ struct OnboardingView: View {
         }
     }
 
-    private var moneyStep: some View {
+    private var spendStep: some View {
         VStack(alignment: .leading, spacing: 24) {
             Text("What do you usually\nspend per day?")
-                .font(.title.bold())
-
-            Text("This helps us show how much you're saving.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.title2.bold())
 
             VStack(spacing: 10) {
                 ForEach([5.0, 10.0, 15.0, 20.0], id: \.self) { amount in
@@ -197,7 +215,7 @@ struct OnboardingView: View {
     private var goalStep: some View {
         VStack(alignment: .leading, spacing: 24) {
             Text("What's your goal?")
-                .font(.title.bold())
+                .font(.title2.bold())
 
             VStack(spacing: 10) {
                 goalButton(goal: .stop, label: "Stop completely", icon: "xmark.circle.fill")
@@ -231,84 +249,7 @@ struct OnboardingView: View {
         .buttonStyle(.plain)
     }
 
-    private var readyStep: some View {
-        VStack(spacing: 24) {
-            Spacer().frame(height: 60)
-
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 72))
-                .foregroundStyle(.green)
-                .symbolEffect(.bounce, value: step == 4)
-
-            Text("You're ready to start.")
-                .font(.title.bold())
-
-            Text("One day at a time.\nWe'll be here for you.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            Text("QuitOne is not medical advice and does not replace professional health services or treatment.")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-                .padding(.top, 8)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var bottomButton: some View {
-        VStack(spacing: 0) {
-            Divider()
-            Group {
-                if step == 4 {
-                    Button {
-                        finishOnboarding()
-                    } label: {
-                        Text("Begin")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color.green)
-                            .clipShape(.rect(cornerRadius: 14))
-                    }
-                } else {
-                    Button {
-                        advanceStep()
-                    } label: {
-                        Text("Continue")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(canAdvance ? Color.green : Color(.tertiarySystemFill))
-                            .clipShape(.rect(cornerRadius: 14))
-                    }
-                    .disabled(!canAdvance)
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
-        }
-        .background(.bar)
-    }
-
-    private var canAdvance: Bool {
-        switch step {
-        case 1:
-            return selectedHabit != nil || !customHabitName.isEmpty
-        default:
-            return true
-        }
-    }
-
-    private func advanceStep() {
-        guard canAdvance else { return }
-        withAnimation { step += 1 }
-    }
-
-    private func finishOnboarding() {
+    private func addHabit() {
         var spend = dailySpend
         if showCustomSpend, let val = Double(customSpendText) {
             spend = val
@@ -322,6 +263,7 @@ struct OnboardingView: View {
             completionHistory: []
         )
 
-        store.completeOnboarding(data: data)
+        store.addHabit(data: data)
+        dismiss()
     }
 }

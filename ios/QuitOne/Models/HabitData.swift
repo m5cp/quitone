@@ -1,27 +1,8 @@
 import Foundation
 
-nonisolated enum HabitType: String, Codable, Sendable, CaseIterable {
-    case money
-    case time
-    case identity
-}
-
 nonisolated enum GoalType: String, Codable, Sendable {
     case stop = "Stop completely"
     case reduce = "Reduce over time"
-}
-
-nonisolated enum FrequencyLevel: String, Codable, Sendable {
-    case occasionally = "Occasionally"
-    case daily = "Daily"
-    case multipleTimesPerDay = "Multiple times per day"
-}
-
-nonisolated struct HabitOption: Identifiable, Sendable {
-    let id = UUID()
-    let name: String
-    let icon: String
-    let type: HabitType
 }
 
 nonisolated enum DayStatus: String, Codable, Sendable {
@@ -41,14 +22,18 @@ nonisolated struct DayEntry: Codable, Identifiable, Sendable {
     }
 }
 
-nonisolated struct HabitData: Codable, Sendable {
+nonisolated struct HabitOption: Identifiable, Sendable {
+    let id = UUID()
+    let name: String
+    let icon: String
+}
+
+nonisolated struct HabitData: Codable, Identifiable, Sendable {
+    var id: String = UUID().uuidString
     var habitName: String
-    var habitType: HabitType
     var startDate: Date
     var goalType: GoalType
-    var dailySpend: Double?
-    var dailyTimeMinutes: Int?
-    var frequencyLevel: FrequencyLevel?
+    var dailySpend: Double
     var completionHistory: [DayEntry]
 
     var currentRunDays: Int {
@@ -84,18 +69,11 @@ nonisolated struct HabitData: Codable, Sendable {
     }
 
     var currentRunSaved: Double {
-        guard let spend = dailySpend else { return 0 }
-        return Double(currentRunDays) * spend
+        Double(currentRunDays) * dailySpend
     }
 
     var totalSaved: Double {
-        guard let spend = dailySpend else { return 0 }
-        return Double(totalProgressDays) * spend
-    }
-
-    var totalTimeReclaimed: Int {
-        guard let minutes = dailyTimeMinutes else { return 0 }
-        return totalProgressDays * minutes
+        Double(totalProgressDays) * dailySpend
     }
 
     var hasCheckedInToday: Bool {
@@ -116,25 +94,14 @@ nonisolated struct HabitData: Codable, Sendable {
 }
 
 let allHabitOptions: [HabitOption] = [
-    HabitOption(name: "Smoking", icon: "smoke.fill", type: .money),
-    HabitOption(name: "Vaping", icon: "cloud.fill", type: .money),
-    HabitOption(name: "Alcohol", icon: "wineglass.fill", type: .money),
-    HabitOption(name: "Energy Drinks / Coffee", icon: "cup.and.saucer.fill", type: .money),
-    HabitOption(name: "Recreational Drugs", icon: "pills.fill", type: .money),
-    HabitOption(name: "Sugar / Junk Food", icon: "birthday.cake.fill", type: .money),
-    HabitOption(name: "Online Shopping", icon: "cart.fill", type: .money),
-    HabitOption(name: "Takeout / Delivery Food", icon: "takeoutbag.and.cup.and.straw.fill", type: .money),
-    HabitOption(name: "Social Media", icon: "iphone.gen3", type: .time),
-    HabitOption(name: "Phone Use", icon: "moon.fill", type: .time),
-    HabitOption(name: "Gaming", icon: "gamecontroller.fill", type: .time),
-    HabitOption(name: "Procrastination", icon: "clock.fill", type: .time),
-    HabitOption(name: "Poor Sleep Routine", icon: "bed.double.fill", type: .time),
-    HabitOption(name: "Overthinking", icon: "brain.head.profile.fill", type: .identity),
-    HabitOption(name: "Negative Self-Talk", icon: "text.bubble.fill", type: .identity),
-    HabitOption(name: "People-Pleasing", icon: "person.2.fill", type: .identity),
-    HabitOption(name: "Comparing Yourself", icon: "arrow.left.arrow.right", type: .identity),
-    HabitOption(name: "Adult Content", icon: "eye.slash.fill", type: .identity),
-    HabitOption(name: "Skipping Exercise", icon: "figure.run", type: .identity),
+    HabitOption(name: "Smoking", icon: "smoke.fill"),
+    HabitOption(name: "Vaping", icon: "cloud.fill"),
+    HabitOption(name: "Alcohol", icon: "wineglass.fill"),
+    HabitOption(name: "Energy Drinks / Coffee", icon: "cup.and.saucer.fill"),
+    HabitOption(name: "Recreational Drugs", icon: "pills.fill"),
+    HabitOption(name: "Sugar / Junk Food", icon: "birthday.cake.fill"),
+    HabitOption(name: "Online Shopping", icon: "cart.fill"),
+    HabitOption(name: "Takeout / Delivery", icon: "takeoutbag.and.cup.and.straw.fill"),
 ]
 
 let onTrackMessages: [String] = [
@@ -158,7 +125,6 @@ let slipRecoveryMessages: [String] = [
 let insightMessages: [String] = [
     "You're building consistency.",
     "That adds up quickly.",
-    "You're taking back your time.",
     "This is real progress.",
     "Small steps, big change.",
     "You're making a difference.",

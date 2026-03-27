@@ -6,19 +6,24 @@ struct ProfileView: View {
     @State private var showEditSpend: Bool = false
     @State private var showEditDate: Bool = false
     @State private var showPaywall: Bool = false
+    @State private var showDeleteHabitAlert: Bool = false
+    @State private var habitToDelete: String?
     @State private var editStartDate: Date = Date()
     @State private var editSpendText: String = ""
     @State private var showCustomSpendField: Bool = false
 
-    private var data: HabitData? { store.habitData }
+    private var data: HabitData? { store.activeHabit }
 
     var body: some View {
         NavigationStack {
             List {
+                if store.habits.count > 1 {
+                    habitsListSection
+                }
                 if let data {
                     habitSection(data: data)
-                    settingsSection(data: data)
                 }
+                settingsSection
                 supportSection
                 dangerSection
             }
@@ -28,6 +33,16 @@ struct ProfileView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("This will permanently remove all your progress. This cannot be undone.")
+            }
+            .alert("Remove Habit?", isPresented: $showDeleteHabitAlert) {
+                Button("Remove", role: .destructive) {
+                    if let id = habitToDelete {
+                        store.deleteHabit(id: id)
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will permanently remove this habit and its progress.")
             }
             .sheet(isPresented: $showEditSpend) {
                 editSpendSheet
@@ -41,6 +56,38 @@ struct ProfileView: View {
         }
     }
 
+    private var habitsListSection: some View {
+        Section {
+            ForEach(store.habits) { habit in
+                Button {
+                    store.switchActiveHabit(to: habit.id)
+                } label: {
+                    HStack {
+                        Text(habit.habitName)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        if store.activeHabitId == habit.id {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.green)
+                        }
+                    }
+                }
+                .swipeActions(edge: .trailing) {
+                    if store.habits.count > 1 {
+                        Button(role: .destructive) {
+                            habitToDelete = habit.id
+                            showDeleteHabitAlert = true
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+        } header: {
+            Text("Your Habits")
+        }
+    }
+
     private func habitSection(data: HabitData) -> some View {
         Section {
             HStack {
@@ -51,35 +98,23 @@ struct ProfileView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if data.habitType == .money, let spend = data.dailySpend {
-                Button {
-                    editSpendText = "\(Int(spend))"
-                    showCustomSpendField = false
-                    showEditSpend = true
-                } label: {
-                    HStack {
-                        Label("Daily Amount", systemImage: "dollarsign.circle.fill")
-                            .foregroundStyle(.green)
-                        Spacer()
-                        Text("$\(Int(spend))/day")
-                            .foregroundStyle(.secondary)
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-                .tint(.primary)
-            }
-
-            if data.habitType == .time, let mins = data.dailyTimeMinutes {
+            Button {
+                editSpendText = "\(Int(data.dailySpend))"
+                showCustomSpendField = false
+                showEditSpend = true
+            } label: {
                 HStack {
-                    Label("Daily Time", systemImage: "clock.fill")
-                        .foregroundStyle(.blue)
+                    Label("Daily Amount", systemImage: "dollarsign.circle.fill")
+                        .foregroundStyle(.green)
                     Spacer()
-                    Text(formatMinutes(mins))
+                    Text("$\(Int(data.dailySpend))/day")
                         .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                 }
             }
+            .tint(.primary)
 
             Button {
                 editStartDate = data.startDate
@@ -106,11 +141,11 @@ struct ProfileView: View {
                     .foregroundStyle(.secondary)
             }
         } header: {
-            Text("Your Habit")
+            Text("Active Habit")
         }
     }
 
-    private func settingsSection(data: HabitData) -> some View {
+    private var settingsSection: some View {
         Section {
             Toggle(isOn: Binding(
                 get: { store.notificationsEnabled },
@@ -176,7 +211,7 @@ struct ProfileView: View {
                 Label("Reset All Data", systemImage: "trash.fill")
             }
         } footer: {
-            Text("This permanently removes all your progress and settings.")
+            Text("QuitOne is not medical advice and does not replace professional health services or treatment.")
         }
     }
 
@@ -292,14 +327,5 @@ struct ProfileView: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-    }
-
-    private func formatMinutes(_ minutes: Int) -> String {
-        let h = minutes / 60
-        let m = minutes % 60
-        if h > 0 {
-            return "\(h)h \(m)m/day"
-        }
-        return "\(m)m/day"
     }
 }

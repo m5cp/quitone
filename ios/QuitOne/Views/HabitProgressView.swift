@@ -5,16 +5,20 @@ struct HabitProgressView: View {
     @State private var viewMode: CalendarViewMode = .week
     @State private var showPaywall: Bool = false
 
-    private var data: HabitData? { store.habitData }
+    private var data: HabitData? { store.activeHabit }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 if let data {
                     VStack(spacing: 24) {
+                        if store.habits.count > 1 {
+                            habitSwitcher
+                        }
                         statsGrid(data: data)
                         calendarSection(data: data)
-                        metricSection(data: data)
+                        savingsCard(data: data)
+                        insightsSection(data: data)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
@@ -29,6 +33,30 @@ struct HabitProgressView: View {
                 PaywallView()
             }
         }
+    }
+
+    private var habitSwitcher: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(store.habits) { habit in
+                    Button {
+                        withAnimation(.snappy) {
+                            store.switchActiveHabit(to: habit.id)
+                        }
+                    } label: {
+                        Text(habit.habitName)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(store.activeHabitId == habit.id ? .white : .primary)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(store.activeHabitId == habit.id ? Color.green : Color(.secondarySystemGroupedBackground))
+                            .clipShape(.capsule)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .contentMargins(.horizontal, 0)
     }
 
     private func statsGrid(data: HabitData) -> some View {
@@ -79,58 +107,22 @@ struct HabitProgressView: View {
         }
     }
 
-    private func metricSection(data: HabitData) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            switch data.habitType {
-            case .money:
-                if let spend = data.dailySpend, spend > 0 {
-                    metricCard(
-                        icon: "dollarsign.circle.fill",
-                        title: "Estimated Savings",
-                        value: "$\(Int(data.totalSaved))",
-                        subtitle: "Based on $\(Int(spend))/day",
-                        color: .green
-                    )
-                }
-            case .time:
-                let total = data.totalTimeReclaimed
-                let hours = total / 60
-                let mins = total % 60
-                metricCard(
-                    icon: "clock.fill",
-                    title: "Time Reclaimed",
-                    value: hours > 0 ? "\(hours)h \(mins)m" : "\(mins)m",
-                    subtitle: "Based on your daily estimate",
-                    color: .blue
-                )
-            case .identity:
-                metricCard(
-                    icon: "heart.fill",
-                    title: "Consistency",
-                    value: "\(data.totalProgressDays) days",
-                    subtitle: "You're building a new pattern",
-                    color: .orange
-                )
-            }
-        }
-    }
-
-    private func metricCard(icon: String, title: String, value: String, subtitle: String, color: Color) -> some View {
+    private func savingsCard(data: HabitData) -> some View {
         HStack(spacing: 16) {
-            Image(systemName: icon)
+            Image(systemName: "dollarsign.circle.fill")
                 .font(.title2)
-                .foregroundStyle(color)
+                .foregroundStyle(.green)
                 .frame(width: 44, height: 44)
-                .background(color.opacity(0.12))
+                .background(Color.green.opacity(0.12))
                 .clipShape(.rect(cornerRadius: 12))
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text("Estimated Savings")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text(value)
+                Text("$\(Int(data.totalSaved))")
                     .font(.title2.bold())
-                Text(subtitle)
+                Text("Based on $\(Int(data.dailySpend))/day")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -141,6 +133,133 @@ struct HabitProgressView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(.rect(cornerRadius: 14))
+    }
+
+    private func insightsSection(data: HabitData) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Insights")
+                    .font(.headline)
+                Spacer()
+                if !store.isPremium {
+                    Button {
+                        showPaywall = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "lock.fill")
+                                .font(.caption2)
+                            Text("Pro")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundStyle(.orange)
+                    }
+                }
+            }
+
+            if store.isPremium {
+                proInsightsContent(data: data)
+            } else {
+                lockedInsightsPreview(data: data)
+            }
+        }
+    }
+
+    private func proInsightsContent(data: HabitData) -> some View {
+        VStack(spacing: 12) {
+            let rate7 = store.completionRate(last: 7)
+            let rate30 = store.completionRate(last: 30)
+            let weekly = store.weeklySpendAvoided()
+
+            insightRow(
+                icon: "chart.line.uptrend.xyaxis",
+                title: "7-Day Success Rate",
+                value: "\(Int(rate7 * 100))%",
+                color: rate7 >= 0.7 ? .green : .orange
+            )
+
+            insightRow(
+                icon: "calendar.badge.clock",
+                title: "30-Day Success Rate",
+                value: "\(Int(rate30 * 100))%",
+                color: rate30 >= 0.7 ? .green : .orange
+            )
+
+            if !weekly.isEmpty {
+                insightRow(
+                    icon: "dollarsign.arrow.trianglehead.counterclockwise.rotate.90",
+                    title: "This Week Saved",
+                    value: "$\(Int(weekly.last ?? 0))",
+                    color: .green
+                )
+            }
+
+            insightRow(
+                icon: "flame.fill",
+                title: "Best Streak",
+                value: "\(store.bestRun()) days",
+                color: .orange
+            )
+
+            if data.totalProgressDays > 0 {
+                let avgPerWeek = Double(data.totalProgressDays) / max(1, Double(daysSinceStart(data: data))) * 7
+                insightRow(
+                    icon: "chart.bar.fill",
+                    title: "Avg Days On Track / Week",
+                    value: String(format: "%.1f", avgPerWeek),
+                    color: .blue
+                )
+            }
+        }
+        .padding(16)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(.rect(cornerRadius: 14))
+    }
+
+    private func lockedInsightsPreview(data: HabitData) -> some View {
+        VStack(spacing: 12) {
+            insightRow(icon: "chart.line.uptrend.xyaxis", title: "7-Day Success Rate", value: "—", color: .secondary)
+            insightRow(icon: "calendar.badge.clock", title: "30-Day Success Rate", value: "—", color: .secondary)
+            insightRow(icon: "dollarsign.arrow.trianglehead.counterclockwise.rotate.90", title: "Weekly Savings Trend", value: "—", color: .secondary)
+            insightRow(icon: "chart.bar.fill", title: "Avg Days On Track / Week", value: "—", color: .secondary)
+        }
+        .padding(16)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay {
+            Button {
+                showPaywall = true
+            } label: {
+                VStack(spacing: 8) {
+                    Image(systemName: "lock.fill")
+                        .font(.title2)
+                    Text("Unlock with Pro")
+                        .font(.subheadline.weight(.medium))
+                }
+                .foregroundStyle(.primary)
+                .padding(16)
+                .background(.ultraThinMaterial)
+                .clipShape(.rect(cornerRadius: 12))
+            }
+        }
+    }
+
+    private func insightRow(icon: String, title: String, value: String, color: Color) -> some View {
+        HStack {
+            Image(systemName: icon)
+                .font(.body)
+                .foregroundStyle(color)
+                .frame(width: 28)
+            Text(title)
+                .font(.subheadline)
+            Spacer()
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(color)
+        }
+    }
+
+    private func daysSinceStart(data: HabitData) -> Int {
+        Calendar.current.dateComponents([.day], from: data.startDate, to: Date()).day ?? 0
     }
 
     private var emptyState: some View {
@@ -235,7 +354,7 @@ struct MonthCalendarView: View {
     }
 
     private var canGoBack: Bool {
-        guard let data = store.habitData else { return false }
+        guard let data = store.activeHabit else { return false }
         let calendar = Calendar.current
         let targetMonth = calendar.date(byAdding: .month, value: monthOffset - 1, to: Date()) ?? Date()
         let startMonth = calendar.dateComponents([.year, .month], from: data.startDate)
