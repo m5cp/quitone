@@ -2,322 +2,517 @@ import SwiftUI
 
 struct OnboardingView: View {
     let store: HabitStore
-    @State private var step: Int = 0
-    @State private var selectedPreset: HabitPreset?
-    @State private var customName: String = ""
+    @State private var step: Int = 1
+    @State private var selectedHabit: HabitOption?
+    @State private var customHabitName: String = ""
+    @State private var customHabitType: HabitType?
     @State private var dailySpend: Double = 10
     @State private var customSpendText: String = ""
     @State private var showCustomSpend: Bool = false
-    @State private var selectedGoal: HabitGoal?
+    @State private var dailyTimeMinutes: Int = 30
+    @State private var customTimeText: String = ""
+    @State private var showCustomTime: Bool = false
+    @State private var frequencyLevel: FrequencyLevel = .daily
+    @State private var goalType: GoalType = .stop
+    @State private var appeared: Bool = false
 
-    private var totalSteps: Int { 4 }
+    private var resolvedHabitType: HabitType? {
+        if let selected = selectedHabit {
+            return selected.type
+        }
+        return customHabitType
+    }
+
+    private var habitName: String {
+        selectedHabit?.name ?? customHabitName
+    }
+
+    private var isCustom: Bool {
+        selectedHabit == nil && !customHabitName.isEmpty
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            progressIndicator
+            progressBar
 
-            TabView(selection: $step) {
-                habitSelectionStep.tag(0)
-                spendStep.tag(1)
-                goalStep.tag(2)
-                readyStep.tag(3)
+            ScrollView {
+                VStack(spacing: 32) {
+                    switch step {
+                    case 1: habitSelectionStep
+                    case 2: adaptiveStep
+                    case 3: goalStep
+                    case 4: readyStep
+                    default: EmptyView()
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 40)
+                .padding(.bottom, 100)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .animation(.smooth(duration: 0.3), value: step)
+            .scrollDismissesKeyboard(.interactively)
+
+            bottomButton
         }
         .background(Color(.systemBackground))
+        .animation(.smooth(duration: 0.3), value: step)
     }
 
-    private var progressIndicator: some View {
+    private var progressBar: some View {
         HStack(spacing: 6) {
-            ForEach(0..<totalSteps, id: \.self) { i in
+            ForEach(1...4, id: \.self) { i in
                 Capsule()
-                    .fill(i <= step ? Color.accentColor : Color(.systemFill))
+                    .fill(i <= step ? Color.green : Color(.tertiarySystemFill))
                     .frame(height: 4)
             }
         }
         .padding(.horizontal, 24)
         .padding(.top, 16)
-        .animation(.snappy, value: step)
     }
-
-    // MARK: - Step 1: Habit Selection
 
     private var habitSelectionStep: some View {
-        ScrollView {
-            VStack(spacing: 28) {
-                Spacer().frame(height: 12)
-
-                Text("What would you like\nto change?")
-                    .font(.title.bold())
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                    ForEach(HabitPreset.allHabits) { preset in
-                        habitCard(preset: preset)
-                    }
-                }
-                .padding(.horizontal, 24)
-
-                customHabitCard
-                    .padding(.horizontal, 24)
-
-                continueButton(enabled: selectedPreset != nil && (selectedPreset != .custom || !customName.isEmpty)) {
-                    step = 1
-                }
-            }
-            .padding(.bottom, 16)
-        }
-        .scrollDismissesKeyboard(.interactively)
-    }
-
-    private func habitCard(preset: HabitPreset) -> some View {
-        let isSelected = selectedPreset == preset
-        return Button {
-            selectedPreset = preset
-            customName = ""
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: preset.icon)
-                    .font(.body)
-                    .foregroundStyle(isSelected ? .white : .accentColor)
-                    .frame(width: 24)
-                Text(preset.displayName)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(isSelected ? .white : .primary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.75)
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 14)
-            .frame(minHeight: 52)
-            .background(isSelected ? Color.accentColor : Color(.tertiarySystemFill))
-            .clipShape(.rect(cornerRadius: 14))
-        }
-        .sensoryFeedback(.selection, trigger: selectedPreset)
-    }
-
-    private var customHabitCard: some View {
-        let isSelected = selectedPreset == .custom
-        return Button {
-            selectedPreset = .custom
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "pencil")
-                    .font(.body)
-                    .foregroundStyle(isSelected ? .white : .accentColor)
-                    .frame(width: 24)
-                if isSelected {
-                    TextField("Name your habit", text: $customName)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white)
-                        .tint(.white)
-                } else {
-                    Text("Custom Habit")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.primary)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .frame(height: 52)
-            .background(isSelected ? Color.accentColor : Color(.tertiarySystemFill))
-            .clipShape(.rect(cornerRadius: 14))
-        }
-    }
-
-    // MARK: - Step 2: Daily Spend
-
-    private var spendStep: some View {
-        VStack(spacing: 32) {
-            Spacer().frame(height: 24)
-
-            Text("What do you usually\nspend per day?")
+        VStack(alignment: .leading, spacing: 24) {
+            Text("What would you like\nto change?")
                 .font(.title.bold())
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
 
-            VStack(spacing: 16) {
-                HStack(spacing: 12) {
-                    ForEach([5.0, 10.0, 15.0, 20.0], id: \.self) { amount in
-                        spendChip(amount: amount)
+            let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(allHabitOptions) { option in
+                    Button {
+                        withAnimation(.snappy) {
+                            selectedHabit = option
+                            customHabitName = ""
+                            customHabitType = nil
+                        }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: option.icon)
+                                .font(.body)
+                                .foregroundStyle(selectedHabit?.id == option.id ? .white : .green)
+                                .frame(width: 28)
+                            Text(option.name)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(selectedHabit?.id == option.id ? .white : .primary)
+                                .multilineTextAlignment(.leading)
+                                .lineLimit(2)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(selectedHabit?.id == option.id ? Color.green : Color(.secondarySystemGroupedBackground))
+                        .clipShape(.rect(cornerRadius: 12))
                     }
+                    .buttonStyle(.plain)
                 }
 
                 Button {
-                    withAnimation(.snappy) { showCustomSpend.toggle() }
+                    withAnimation(.snappy) {
+                        selectedHabit = nil
+                        customHabitName = ""
+                    }
                 } label: {
-                    Text("Custom amount")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.accentColor)
+                    HStack(spacing: 10) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.body)
+                            .foregroundStyle(isCustom ? .white : .green)
+                            .frame(width: 28)
+                        Text("Custom Habit")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(isCustom ? .white : .primary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(isCustom ? Color.green : Color(.secondarySystemGroupedBackground))
+                    .clipShape(.rect(cornerRadius: 12))
                 }
+                .buttonStyle(.plain)
+            }
+
+            if selectedHabit == nil {
+                VStack(alignment: .leading, spacing: 16) {
+                    TextField("Name your habit", text: $customHabitName)
+                        .font(.body)
+                        .padding(14)
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .clipShape(.rect(cornerRadius: 12))
+
+                    if !customHabitName.isEmpty {
+                        Text("What kind of habit is this?")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.secondary)
+
+                        VStack(spacing: 8) {
+                            customTypeButton(label: "Costs me money", type: .money)
+                            customTypeButton(label: "Takes my time", type: .time)
+                            customTypeButton(label: "Affects my mindset", type: .identity)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func customTypeButton(label: String, type: HabitType) -> some View {
+        Button {
+            withAnimation(.snappy) { customHabitType = type }
+        } label: {
+            HStack {
+                Text(label)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(customHabitType == type ? .white : .primary)
+                Spacer()
+                if customHabitType == type {
+                    Image(systemName: "checkmark")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.white)
+                }
+            }
+            .padding(14)
+            .background(customHabitType == type ? Color.green : Color(.secondarySystemGroupedBackground))
+            .clipShape(.rect(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var adaptiveStep: some View {
+        switch resolvedHabitType {
+        case .money:
+            moneyStep
+        case .time:
+            timeStep
+        case .identity:
+            identityStep
+        case .none:
+            EmptyView()
+        }
+    }
+
+    private var moneyStep: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Text("What do you usually\nspend per day?")
+                .font(.title.bold())
+
+            Text("This helps us show how much you're saving.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            VStack(spacing: 10) {
+                ForEach([5.0, 10.0, 15.0, 20.0], id: \.self) { amount in
+                    Button {
+                        withAnimation(.snappy) {
+                            dailySpend = amount
+                            showCustomSpend = false
+                        }
+                    } label: {
+                        HStack {
+                            Text("$\(Int(amount)) per day")
+                                .font(.body.weight(.medium))
+                                .foregroundStyle(!showCustomSpend && dailySpend == amount ? .white : .primary)
+                            Spacer()
+                            if !showCustomSpend && dailySpend == amount {
+                                Image(systemName: "checkmark")
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .padding(16)
+                        .background(!showCustomSpend && dailySpend == amount ? Color.green : Color(.secondarySystemGroupedBackground))
+                        .clipShape(.rect(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Button {
+                    withAnimation(.snappy) { showCustomSpend = true }
+                } label: {
+                    HStack {
+                        Text("Custom amount")
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(showCustomSpend ? .white : .primary)
+                        Spacer()
+                    }
+                    .padding(16)
+                    .background(showCustomSpend ? Color.green : Color(.secondarySystemGroupedBackground))
+                    .clipShape(.rect(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
 
                 if showCustomSpend {
                     HStack {
                         Text("$")
                             .font(.title2.bold())
-                            .foregroundStyle(.primary.opacity(0.5))
-                        TextField("Amount", text: $customSpendText)
+                        TextField("0", text: $customSpendText)
                             .font(.title2.bold())
                             .keyboardType(.decimalPad)
-                            .onChange(of: customSpendText) { _, newValue in
-                                if let value = Double(newValue), value > 0 {
-                                    dailySpend = value
-                                }
-                            }
                     }
-                    .padding()
-                    .background(Color(.tertiarySystemFill))
+                    .padding(16)
+                    .background(Color(.secondarySystemGroupedBackground))
                     .clipShape(.rect(cornerRadius: 12))
-                    .padding(.horizontal, 24)
-                    .transition(.scale.combined(with: .opacity))
                 }
             }
-            .padding(.horizontal, 24)
+        }
+    }
 
-            Spacer()
+    private var timeStep: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Text("How much time does\nthis take daily?")
+                .font(.title.bold())
 
-            continueButton(enabled: dailySpend > 0) {
-                step = 2
+            Text("This helps us show how much time you're reclaiming.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            VStack(spacing: 10) {
+                ForEach([(15, "15 minutes"), (30, "30 minutes"), (60, "1 hour"), (120, "2+ hours")], id: \.0) { mins, label in
+                    Button {
+                        withAnimation(.snappy) {
+                            dailyTimeMinutes = mins
+                            showCustomTime = false
+                        }
+                    } label: {
+                        HStack {
+                            Text(label)
+                                .font(.body.weight(.medium))
+                                .foregroundStyle(!showCustomTime && dailyTimeMinutes == mins ? .white : .primary)
+                            Spacer()
+                            if !showCustomTime && dailyTimeMinutes == mins {
+                                Image(systemName: "checkmark")
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .padding(16)
+                        .background(!showCustomTime && dailyTimeMinutes == mins ? Color.green : Color(.secondarySystemGroupedBackground))
+                        .clipShape(.rect(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Button {
+                    withAnimation(.snappy) { showCustomTime = true }
+                } label: {
+                    HStack {
+                        Text("Custom")
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(showCustomTime ? .white : .primary)
+                        Spacer()
+                    }
+                    .padding(16)
+                    .background(showCustomTime ? Color.green : Color(.secondarySystemGroupedBackground))
+                    .clipShape(.rect(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+
+                if showCustomTime {
+                    HStack {
+                        TextField("0", text: $customTimeText)
+                            .font(.title2.bold())
+                            .keyboardType(.numberPad)
+                        Text("minutes")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(16)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .clipShape(.rect(cornerRadius: 12))
+                }
             }
         }
-        .scrollDismissesKeyboard(.interactively)
     }
 
-    private func spendChip(amount: Double) -> some View {
-        let isSelected = dailySpend == amount && !showCustomSpend
-        return Button {
-            dailySpend = amount
-            showCustomSpend = false
-            customSpendText = ""
-        } label: {
-            Text("$\(Int(amount))")
-                .font(.headline)
-                .foregroundStyle(isSelected ? .white : .primary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .background(isSelected ? Color.accentColor : Color(.tertiarySystemFill))
-                .clipShape(.rect(cornerRadius: 14))
+    private var identityStep: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Text("How often does\nthis happen?")
+                .font(.title.bold())
+
+            VStack(spacing: 10) {
+                ForEach(FrequencyLevel.allCases, id: \.self) { level in
+                    Button {
+                        withAnimation(.snappy) { frequencyLevel = level }
+                    } label: {
+                        HStack {
+                            Text(level.rawValue)
+                                .font(.body.weight(.medium))
+                                .foregroundStyle(frequencyLevel == level ? .white : .primary)
+                            Spacer()
+                            if frequencyLevel == level {
+                                Image(systemName: "checkmark")
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .padding(16)
+                        .background(frequencyLevel == level ? Color.green : Color(.secondarySystemGroupedBackground))
+                        .clipShape(.rect(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
-        .sensoryFeedback(.selection, trigger: dailySpend)
     }
-
-    // MARK: - Step 3: Goal
 
     private var goalStep: some View {
-        VStack(spacing: 32) {
-            Spacer().frame(height: 24)
-
+        VStack(alignment: .leading, spacing: 24) {
             Text("What's your goal?")
                 .font(.title.bold())
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
 
-            VStack(spacing: 12) {
-                goalCard(goal: .stopCompletely, icon: "xmark.circle", subtitle: "Quit entirely and stay free")
-                goalCard(goal: .reduceOverTime, icon: "arrow.down.circle", subtitle: "Gradually cut back over time")
-            }
-            .padding(.horizontal, 24)
-
-            Spacer()
-
-            continueButton(enabled: selectedGoal != nil) {
-                step = 3
+            VStack(spacing: 10) {
+                goalButton(goal: .stop, label: "Stop completely", icon: "xmark.circle.fill")
+                goalButton(goal: .reduce, label: "Reduce over time", icon: "arrow.down.circle.fill")
             }
         }
     }
 
-    private func goalCard(goal: HabitGoal, icon: String, subtitle: String) -> some View {
-        let isSelected = selectedGoal == goal
-        return Button {
-            selectedGoal = goal
+    private func goalButton(goal: GoalType, label: String, icon: String) -> some View {
+        Button {
+            withAnimation(.snappy) { goalType = goal }
         } label: {
-            HStack(spacing: 16) {
+            HStack(spacing: 14) {
                 Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(isSelected ? .white : .accentColor)
-                    .frame(width: 32)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(goal.rawValue)
-                        .font(.headline)
-                        .foregroundStyle(isSelected ? .white : .primary)
-                    Text(subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(isSelected ? .white.opacity(0.8) : .primary.opacity(0.55))
-                }
+                    .font(.title3)
+                    .foregroundStyle(goalType == goal ? .white : .green)
+                Text(label)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(goalType == goal ? .white : .primary)
                 Spacer()
-                if isSelected {
+                if goalType == goal {
                     Image(systemName: "checkmark")
-                        .font(.body.bold())
+                        .font(.subheadline.bold())
                         .foregroundStyle(.white)
                 }
             }
-            .padding(20)
-            .background(isSelected ? Color.accentColor : Color(.tertiarySystemFill))
-            .clipShape(.rect(cornerRadius: 16))
+            .padding(16)
+            .background(goalType == goal ? Color.green : Color(.secondarySystemGroupedBackground))
+            .clipShape(.rect(cornerRadius: 12))
         }
-        .sensoryFeedback(.selection, trigger: selectedGoal)
+        .buttonStyle(.plain)
     }
-
-    // MARK: - Step 4: Ready
 
     private var readyStep: some View {
         VStack(spacing: 24) {
-            Spacer()
+            Spacer().frame(height: 60)
 
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 72))
-                .foregroundStyle(Color.accentColor)
-                .symbolEffect(.bounce, value: step == 3)
+                .foregroundStyle(.green)
+                .symbolEffect(.bounce, value: step == 4)
 
             Text("You're ready to start.")
                 .font(.title.bold())
 
-            Text("One day at a time.")
-                .font(.body.weight(.medium))
-                .foregroundStyle(.primary.opacity(0.6))
+            Text("One day at a time.\nWe'll be here for you.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+    }
 
-            Spacer()
-
-            Button {
-                store.completeOnboarding(
-                    preset: selectedPreset ?? .smoking,
-                    customName: customName,
-                    goal: selectedGoal ?? .stopCompletely,
-                    dailySpend: dailySpend
-                )
-            } label: {
-                Text("Begin")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(Color.accentColor)
-                    .foregroundStyle(.white)
-                    .clipShape(.rect(cornerRadius: 16))
+    private var bottomButton: some View {
+        VStack(spacing: 0) {
+            Divider()
+            Group {
+                if step == 4 {
+                    Button {
+                        finishOnboarding()
+                    } label: {
+                        Text("Begin")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color.green)
+                            .clipShape(.rect(cornerRadius: 14))
+                    }
+                } else {
+                    Button {
+                        advanceStep()
+                    } label: {
+                        Text("Continue")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(canAdvance ? Color.green : Color(.tertiarySystemFill))
+                            .clipShape(.rect(cornerRadius: 14))
+                    }
+                    .disabled(!canAdvance)
+                }
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 16)
-            .sensoryFeedback(.success, trigger: step)
+            .padding(.vertical, 16)
+        }
+        .background(.bar)
+    }
+
+    private var canAdvance: Bool {
+        switch step {
+        case 1:
+            if selectedHabit != nil { return true }
+            if !customHabitName.isEmpty && customHabitType != nil { return true }
+            return false
+        case 2:
+            return true
+        case 3:
+            return true
+        default:
+            return true
         }
     }
 
-    // MARK: - Shared
-
-    private func continueButton(enabled: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text("Continue")
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-                .frame(height: 56)
-                .background(enabled ? Color.accentColor : Color(.systemFill))
-                .foregroundStyle(enabled ? .white : .primary.opacity(0.4))
-                .clipShape(.rect(cornerRadius: 16))
+    private func advanceStep() {
+        guard canAdvance else { return }
+        if step == 1, resolvedHabitType == .identity {
+            withAnimation { step = 2 }
+        } else {
+            withAnimation { step += 1 }
         }
-        .disabled(!enabled)
-        .padding(.horizontal, 24)
-        .padding(.bottom, 16)
+    }
+
+    private func finishOnboarding() {
+        var spend: Double? = nil
+        var time: Int? = nil
+        var freq: FrequencyLevel? = nil
+
+        switch resolvedHabitType {
+        case .money:
+            if showCustomSpend, let val = Double(customSpendText) {
+                spend = val
+            } else {
+                spend = dailySpend
+            }
+        case .time:
+            if showCustomTime, let val = Int(customTimeText) {
+                time = val
+            } else {
+                time = dailyTimeMinutes
+            }
+        case .identity:
+            freq = frequencyLevel
+        case .none:
+            break
+        }
+
+        let data = HabitData(
+            habitName: habitName,
+            habitType: resolvedHabitType ?? .identity,
+            startDate: Date(),
+            goalType: goalType,
+            dailySpend: spend,
+            dailyTimeMinutes: time,
+            frequencyLevel: freq,
+            completionHistory: []
+        )
+
+        store.completeOnboarding(data: data)
+    }
+}
+
+extension FrequencyLevel: CaseIterable {
+    nonisolated static var allCases: [FrequencyLevel] {
+        [.occasionally, .daily, .multipleTimesPerDay]
     }
 }

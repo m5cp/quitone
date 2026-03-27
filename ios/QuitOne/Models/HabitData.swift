@@ -1,112 +1,169 @@
 import Foundation
 
-nonisolated enum HabitPreset: String, Codable, CaseIterable, Sendable, Identifiable {
-    case smoking = "Smoking"
-    case vaping = "Vaping"
-    case alcohol = "Alcohol"
-    case energyDrinks = "Energy Drinks / Coffee"
-    case recreationalDrugs = "Recreational Drugs"
-    case sugarJunkFood = "Sugar / Junk Food"
-    case onlineShopping = "Online Shopping"
-    case takeoutDelivery = "Takeout / Delivery Food"
-    case custom = "Custom Habit"
-
-    var id: String { rawValue }
-
-    var icon: String {
-        switch self {
-        case .smoking: "lungs"
-        case .vaping: "cloud"
-        case .alcohol: "wineglass"
-        case .energyDrinks: "cup.and.saucer"
-        case .recreationalDrugs: "pills"
-        case .sugarJunkFood: "fork.knife"
-        case .onlineShopping: "cart"
-        case .takeoutDelivery: "bag"
-        case .custom: "pencil"
-        }
-    }
-
-    var displayName: String { rawValue }
-
-    static var allHabits: [HabitPreset] {
-        [.smoking, .vaping, .alcohol, .energyDrinks, .recreationalDrugs,
-         .sugarJunkFood, .onlineShopping, .takeoutDelivery]
-    }
+nonisolated enum HabitType: String, Codable, Sendable, CaseIterable {
+    case money
+    case time
+    case identity
 }
 
-nonisolated enum HabitGoal: String, Codable, Sendable {
-    case stopCompletely = "Stop completely"
-    case reduceOverTime = "Reduce over time"
+nonisolated enum GoalType: String, Codable, Sendable {
+    case stop = "Stop completely"
+    case reduce = "Reduce over time"
 }
 
-nonisolated struct CheckInEntry: Codable, Identifiable, Sendable {
-    let id: UUID
-    let date: Date
-    let onTrack: Bool
+nonisolated enum FrequencyLevel: String, Codable, Sendable {
+    case occasionally = "Occasionally"
+    case daily = "Daily"
+    case multipleTimesPerDay = "Multiple times per day"
+}
 
-    init(id: UUID = UUID(), date: Date = Date(), onTrack: Bool) {
-        self.id = id
-        self.date = date
-        self.onTrack = onTrack
+nonisolated struct HabitOption: Identifiable, Sendable {
+    let id = UUID()
+    let name: String
+    let icon: String
+    let type: HabitType
+}
+
+nonisolated enum DayStatus: String, Codable, Sendable {
+    case completed
+    case slipped
+}
+
+nonisolated struct DayEntry: Codable, Identifiable, Sendable {
+    var id: String { dateString }
+    let dateString: String
+    let status: DayStatus
+
+    var date: Date? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: dateString)
     }
 }
 
 nonisolated struct HabitData: Codable, Sendable {
-    var preset: HabitPreset
-    var customHabitName: String
-    var goal: HabitGoal
-    var dailySpend: Double
+    var habitName: String
+    var habitType: HabitType
     var startDate: Date
-    var currentRunStartDate: Date
-    var totalProgressDays: Int
-    var checkIns: [CheckInEntry]
-    var notificationsEnabled: Bool
-
-    var habitName: String {
-        preset == .custom ? customHabitName : preset.displayName
-    }
+    var goalType: GoalType
+    var dailySpend: Double?
+    var dailyTimeMinutes: Int?
+    var frequencyLevel: FrequencyLevel?
+    var completionHistory: [DayEntry]
 
     var currentRunDays: Int {
-        max(0, Calendar.current.dateComponents([.day], from: currentRunStartDate, to: Date()).day ?? 0)
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var count = 0
+        var checkDate = today
+
+        while true {
+            let dateStr = Self.dateString(from: checkDate)
+            if let entry = completionHistory.first(where: { $0.dateString == dateStr }) {
+                if entry.status == .completed {
+                    count += 1
+                    guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
+                    checkDate = prev
+                } else {
+                    break
+                }
+            } else {
+                if checkDate == today {
+                    guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
+                    checkDate = prev
+                } else {
+                    break
+                }
+            }
+        }
+        return count
+    }
+
+    var totalProgressDays: Int {
+        completionHistory.filter { $0.status == .completed }.count
     }
 
     var currentRunSaved: Double {
-        Double(currentRunDays) * dailySpend
+        guard let spend = dailySpend else { return 0 }
+        return Double(currentRunDays) * spend
     }
 
     var totalSaved: Double {
-        Double(totalProgressDays) * dailySpend
+        guard let spend = dailySpend else { return 0 }
+        return Double(totalProgressDays) * spend
     }
 
-    var lastCheckInDate: Date? {
-        checkIns.last?.date
+    var totalTimeReclaimed: Int {
+        guard let minutes = dailyTimeMinutes else { return 0 }
+        return totalProgressDays * minutes
     }
 
     var hasCheckedInToday: Bool {
-        guard let last = lastCheckInDate else { return false }
-        return Calendar.current.isDateInToday(last)
+        let today = Self.dateString(from: Date())
+        return completionHistory.contains { $0.dateString == today }
     }
 
-    init(
-        preset: HabitPreset = .smoking,
-        customHabitName: String = "",
-        goal: HabitGoal = .stopCompletely,
-        dailySpend: Double = 10,
-        startDate: Date = Date(),
-        currentRunStartDate: Date = Date(),
-        totalProgressDays: Int = 0,
-        checkIns: [CheckInEntry] = [],
-        notificationsEnabled: Bool = true
-    ) {
-        self.preset = preset
-        self.customHabitName = customHabitName
-        self.goal = goal
-        self.dailySpend = dailySpend
-        self.startDate = startDate
-        self.currentRunStartDate = currentRunStartDate
-        self.totalProgressDays = totalProgressDays
-        self.checkIns = checkIns
-        self.notificationsEnabled = notificationsEnabled
+    var todayStatus: DayStatus? {
+        let today = Self.dateString(from: Date())
+        return completionHistory.first { $0.dateString == today }?.status
+    }
+
+    static func dateString(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
 }
+
+let allHabitOptions: [HabitOption] = [
+    HabitOption(name: "Smoking", icon: "smoke.fill", type: .money),
+    HabitOption(name: "Vaping", icon: "cloud.fill", type: .money),
+    HabitOption(name: "Alcohol", icon: "wineglass.fill", type: .money),
+    HabitOption(name: "Energy Drinks / Coffee", icon: "cup.and.saucer.fill", type: .money),
+    HabitOption(name: "Recreational Drugs", icon: "pills.fill", type: .money),
+    HabitOption(name: "Sugar / Junk Food", icon: "birthday.cake.fill", type: .money),
+    HabitOption(name: "Online Shopping", icon: "cart.fill", type: .money),
+    HabitOption(name: "Takeout / Delivery Food", icon: "takeoutbag.and.cup.and.straw.fill", type: .money),
+    HabitOption(name: "Social Media", icon: "iphone.gen3", type: .time),
+    HabitOption(name: "Phone Use", icon: "moon.fill", type: .time),
+    HabitOption(name: "Gaming", icon: "gamecontroller.fill", type: .time),
+    HabitOption(name: "Procrastination", icon: "clock.fill", type: .time),
+    HabitOption(name: "Poor Sleep Routine", icon: "bed.double.fill", type: .time),
+    HabitOption(name: "Overthinking", icon: "brain.head.profile.fill", type: .identity),
+    HabitOption(name: "Negative Self-Talk", icon: "text.bubble.fill", type: .identity),
+    HabitOption(name: "People-Pleasing", icon: "person.2.fill", type: .identity),
+    HabitOption(name: "Comparing Yourself", icon: "arrow.left.arrow.right", type: .identity),
+    HabitOption(name: "Adult Content", icon: "eye.slash.fill", type: .identity),
+    HabitOption(name: "Skipping Exercise", icon: "figure.run", type: .identity),
+]
+
+let onTrackMessages: [String] = [
+    "You're still on track.",
+    "You're doing well.",
+    "You're building momentum.",
+    "Keep it going.",
+    "One day at a time.",
+    "You've got this.",
+    "Strong and steady.",
+]
+
+let slipRecoveryMessages: [String] = [
+    "One day doesn't erase your progress.",
+    "You're still building something.",
+    "Start again today.",
+    "Progress isn't perfection.",
+    "Every day is a fresh start.",
+]
+
+let insightMessages: [String] = [
+    "You're building consistency.",
+    "That adds up quickly.",
+    "You're taking back your time.",
+    "This is real progress.",
+    "Small steps, big change.",
+    "You're making a difference.",
+    "Every day counts.",
+    "You're stronger than you think.",
+    "Trust the process.",
+    "Progress over perfection.",
+]

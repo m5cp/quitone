@@ -1,194 +1,175 @@
-import Foundation
-@preconcurrency import UserNotifications
+import SwiftUI
+import UserNotifications
 
 @Observable
 @MainActor
 class HabitStore {
-    var habitData: HabitData {
-        didSet { save() }
-    }
+    var habitData: HabitData?
+    var hasCompletedOnboarding: Bool = false
+    var isPremium: Bool = false
 
-    var hasCompletedOnboarding: Bool {
-        didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
-    }
-
-    var showSlipMessage: Bool = false
-
-    private let storageKey = "habitData_v2"
+    private let dataKey = "habitData"
+    private let onboardingKey = "hasCompletedOnboarding"
+    private let premiumKey = "isPremium"
 
     init() {
-        self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
-        if let data = UserDefaults.standard.data(forKey: "habitData_v2"),
-           let decoded = try? JSONDecoder().decode(HabitData.self, from: data) {
-            self.habitData = decoded
-        } else {
-            self.habitData = HabitData()
-        }
+        hasCompletedOnboarding = UserDefaults.standard.bool(forKey: onboardingKey)
+        isPremium = UserDefaults.standard.bool(forKey: premiumKey)
+        loadData()
     }
 
-    func completeOnboarding(
-        preset: HabitPreset,
-        customName: String,
-        goal: HabitGoal,
-        dailySpend: Double
-    ) {
-        let now = Date()
-        habitData = HabitData(
-            preset: preset,
-            customHabitName: customName,
-            goal: goal,
-            dailySpend: dailySpend,
-            startDate: now,
-            currentRunStartDate: now,
-            totalProgressDays: 0,
-            checkIns: [],
-            notificationsEnabled: true
-        )
+    func completeOnboarding(data: HabitData) {
+        habitData = data
         hasCompletedOnboarding = true
+        UserDefaults.standard.set(true, forKey: onboardingKey)
+        saveData()
         scheduleNotification()
     }
 
-    func checkInOnTrack() {
-        guard !habitData.hasCheckedInToday else { return }
-        habitData.totalProgressDays += 1
-        habitData.checkIns.append(CheckInEntry(onTrack: true))
+    func checkInToday() {
+        guard var data = habitData else { return }
+        let today = HabitData.dateString(from: Date())
+        guard !data.completionHistory.contains(where: { $0.dateString == today }) else { return }
+        data.completionHistory.append(DayEntry(dateString: today, status: .completed))
+        habitData = data
+        saveData()
     }
 
-    func checkInSlip() {
-        guard !habitData.hasCheckedInToday else { return }
-        habitData.currentRunStartDate = Date()
-        habitData.checkIns.append(CheckInEntry(onTrack: false))
-        showSlipMessage = true
+    func slipToday() {
+        guard var data = habitData else { return }
+        let today = HabitData.dateString(from: Date())
+        data.completionHistory.removeAll { $0.dateString == today }
+        data.completionHistory.append(DayEntry(dateString: today, status: .slipped))
+        habitData = data
+        saveData()
     }
 
     func updateDailySpend(_ amount: Double) {
-        habitData.dailySpend = amount
+        guard var data = habitData else { return }
+        data.dailySpend = amount
+        habitData = data
+        saveData()
     }
 
-    func updateNotifications(_ enabled: Bool) {
-        habitData.notificationsEnabled = enabled
-        if enabled {
-            scheduleNotification()
-        } else {
-            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-        }
+    func updateDailyTime(_ minutes: Int) {
+        guard var data = habitData else { return }
+        data.dailyTimeMinutes = minutes
+        habitData = data
+        saveData()
     }
 
     func updateStartDate(_ date: Date) {
-        habitData.startDate = date
-        if date > habitData.currentRunStartDate {
-            habitData.currentRunStartDate = date
-        }
+        guard var data = habitData else { return }
+        data.startDate = date
+        habitData = data
+        saveData()
     }
 
-    func updateGoal(_ goal: HabitGoal) {
-        habitData.goal = goal
+    func updateGoal(_ goal: GoalType) {
+        guard var data = habitData else { return }
+        data.goalType = goal
+        habitData = data
+        saveData()
     }
 
-    func resetProgress() {
-        let now = Date()
-        habitData.currentRunStartDate = now
-        habitData.totalProgressDays = 0
-        habitData.checkIns = []
-    }
-
-    func resetAll() {
-        habitData = HabitData()
+    func resetAllData() {
+        habitData = nil
         hasCompletedOnboarding = false
+        UserDefaults.standard.set(false, forKey: onboardingKey)
+        UserDefaults.standard.removeObject(forKey: dataKey)
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+    }
+
+    func statusForDate(_ date: Date) -> DayStatus? {
+        let dateStr = HabitData.dateString(from: date)
+        return habitData?.completionHistory.first { $0.dateString == dateStr }?.status
+    }
+
+    func bestRun() -> Int {
+        guard let data = habitData else { return 0 }
+        let sorted = data.completionHistory
+            .filter { $0.status == .completed }
+            .compactMap { $0.date }
+            .sorted()
+
+        guard !sorted.isEmpty else { return 0 }
+
+        let calendar = Calendar.current
+        var best = 1
+        var current = 1
+
+        for i in 1..<sorted.count {
+            let diff = calendar.dateComponents([.day], from: sorted[i - 1], to: sorted[i]).day ?? 0
+            if diff == 1 {
+                current += 1
+                best = max(best, current)
+            } else if diff > 1 {
+                current = 1
+            }
+        }
+        return max(best, current)
     }
 
     func scheduleNotification() {
         let center = UNUserNotificationCenter.current()
         center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
             guard granted else { return }
-            center.removeAllPendingNotificationRequests()
-
-            let messages = [
-                "Your progress is waiting for you.",
-                "Stay on track today.",
-                "You're building momentum.",
-                "One day at a time.",
-                "You're doing well. Check in today.",
-                "Quick check-in available.",
-                "Keep the streak alive.",
-                "You're stronger than yesterday.",
-                "Small steps, big change.",
-                "Your future self will thank you.",
-                "Today matters. You've got this.",
-                "Progress looks good on you.",
-                "Another day, another win.",
-                "You're making real progress."
-            ]
-
-            let content = UNMutableNotificationContent()
-            content.title = "QuitOne"
-            content.body = messages[Int.random(in: 0..<messages.count)]
-            content.sound = .default
-
-            var dateComponents = DateComponents()
-            dateComponents.hour = 9
-            dateComponents.minute = 0
-
-            let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-            let request = UNNotificationRequest(identifier: "dailyReminder", content: content, trigger: trigger)
-            center.add(request)
-        }
-    }
-
-    // MARK: - Display
-
-    var statusMessage: String {
-        if habitData.currentRunDays == 0 && habitData.totalProgressDays == 0 {
-            if habitData.hasCheckedInToday {
-                return "You're off to a great start."
+            Task { @MainActor in
+                self.setupDailyNotification()
             }
-            return "Today is day one."
-        } else if habitData.currentRunDays == 0 {
-            if habitData.hasCheckedInToday {
-                return "You're building momentum."
+        }
+    }
+
+    var notificationsEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: "notificationsEnabled") }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "notificationsEnabled")
+            if newValue {
+                scheduleNotification()
+            } else {
+                UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
             }
-            return "Start fresh today."
-        } else if habitData.currentRunDays < 3 {
-            return "You're building momentum."
-        } else {
-            return "You're still on track."
         }
     }
 
-    var formattedSaved: String {
-        let amount = habitData.totalSaved
-        if amount >= 1000 {
-            return "$\(Int(amount).formatted())"
-        }
-        return "$\(Int(amount))"
-    }
+    private func setupDailyNotification() {
+        let center = UNUserNotificationCenter.current()
+        center.removeAllPendingNotificationRequests()
 
-    var formattedCurrentRunSaved: String {
-        let amount = habitData.currentRunSaved
-        if amount >= 1000 {
-            return "$\(Int(amount).formatted())"
-        }
-        return "$\(Int(amount))"
-    }
-
-    var dailyInsight: String {
-        let day = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 0
-        let insights = [
-            "You've saved about \(formattedSaved) so far.",
-            "That adds up quickly.",
-            "You're keeping more of your money.",
-            "You're building consistency.",
-            "Every day counts.",
-            "Progress, not perfection.",
-            "This is real progress."
+        let messages = [
+            "Your progress is waiting for you.",
+            "Stay on track today.",
+            "You're building momentum.",
+            "Quick check-in available.",
+            "One tap to keep your streak going.",
+            "You're doing great — check in today.",
+            "A moment for yourself today.",
         ]
-        return insights[day % insights.count]
+
+        let content = UNMutableNotificationContent()
+        content.title = "QuitOne"
+        content.body = messages.randomElement() ?? "Check in today."
+        content.sound = .default
+
+        var dateComponents = DateComponents()
+        dateComponents.hour = 10
+        dateComponents.minute = 0
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+        let request = UNNotificationRequest(identifier: "dailyReminder", content: content, trigger: trigger)
+        center.add(request)
     }
 
-    private func save() {
-        if let data = try? JSONEncoder().encode(habitData) {
-            UserDefaults.standard.set(data, forKey: storageKey)
+    private func saveData() {
+        guard let data = habitData else { return }
+        if let encoded = try? JSONEncoder().encode(data) {
+            UserDefaults.standard.set(encoded, forKey: dataKey)
         }
+    }
+
+    private func loadData() {
+        guard let saved = UserDefaults.standard.data(forKey: dataKey),
+              let decoded = try? JSONDecoder().decode(HabitData.self, from: saved) else { return }
+        habitData = decoded
     }
 }

@@ -3,320 +3,303 @@ import SwiftUI
 struct ProfileView: View {
     let store: HabitStore
     @State private var showResetAlert: Bool = false
-    @State private var showResetAllAlert: Bool = false
-    @State private var editingDate: Bool = false
-    @State private var editDate: Date = Date()
-    @State private var editingGoal: Bool = false
-    @State private var showSpendEditor: Bool = false
+    @State private var showEditSpend: Bool = false
+    @State private var showEditDate: Bool = false
+    @State private var showPaywall: Bool = false
+    @State private var editStartDate: Date = Date()
+    @State private var editSpendText: String = ""
+    @State private var showCustomSpendField: Bool = false
+
+    private var data: HabitData? { store.habitData }
 
     var body: some View {
         NavigationStack {
             List {
-                headerSection
-                habitSection
-                notificationSection
+                if let data {
+                    habitSection(data: data)
+                    settingsSection(data: data)
+                }
                 supportSection
-                legalSection
                 dangerSection
             }
-            .listStyle(.insetGrouped)
             .navigationTitle("Profile")
-            .navigationDestination(for: LegalPage.self) { page in
-                LegalView(page: page)
+            .alert("Reset All Data?", isPresented: $showResetAlert) {
+                Button("Reset", role: .destructive) { store.resetAllData() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will permanently remove all your progress. This cannot be undone.")
             }
-            .sheet(isPresented: $showSpendEditor) {
-                DailySpendEditorView(store: store)
+            .sheet(isPresented: $showEditSpend) {
+                editSpendSheet
+            }
+            .sheet(isPresented: $showEditDate) {
+                editDateSheet
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
             }
         }
     }
 
-    // MARK: - Header
-
-    private var headerSection: some View {
+    private func habitSection(data: HabitData) -> some View {
         Section {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Your progress")
-                    .font(.title2.bold())
-                HStack(spacing: 8) {
-                    Image(systemName: "heart.fill")
-                        .foregroundStyle(Color.accentColor)
-                    Text(store.statusMessage)
-                        .font(.subheadline)
+            HStack {
+                Label("Habit", systemImage: "leaf.fill")
+                    .foregroundStyle(.green)
+                Spacer()
+                Text(data.habitName)
+                    .foregroundStyle(.secondary)
+            }
+
+            if data.habitType == .money, let spend = data.dailySpend {
+                Button {
+                    editSpendText = "\(Int(spend))"
+                    showCustomSpendField = false
+                    showEditSpend = true
+                } label: {
+                    HStack {
+                        Label("Daily Amount", systemImage: "dollarsign.circle.fill")
+                            .foregroundStyle(.green)
+                        Spacer()
+                        Text("$\(Int(spend))/day")
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .tint(.primary)
+            }
+
+            if data.habitType == .time, let mins = data.dailyTimeMinutes {
+                HStack {
+                    Label("Daily Time", systemImage: "clock.fill")
+                        .foregroundStyle(.blue)
+                    Spacer()
+                    Text(formatMinutes(mins))
                         .foregroundStyle(.secondary)
                 }
-            }
-            .padding(.vertical, 8)
-            .listRowBackground(Color.clear)
-        }
-    }
-
-    // MARK: - Habit Settings
-
-    private var habitSection: some View {
-        Section("Habit") {
-            HStack {
-                Label(store.habitData.habitName, systemImage: store.habitData.preset.icon)
-                Spacer()
             }
 
             Button {
-                showSpendEditor = true
+                editStartDate = data.startDate
+                showEditDate = true
             } label: {
                 HStack {
-                    Label("Daily spend", systemImage: "dollarsign.circle")
-                        .foregroundStyle(.primary)
+                    Label("Start Date", systemImage: "calendar")
+                        .foregroundStyle(.blue)
                     Spacer()
-                    Text("$\(Int(store.habitData.dailySpend))/day")
-                        .foregroundStyle(Color.accentColor)
+                    Text(data.startDate.formatted(date: .abbreviated, time: .omitted))
+                        .foregroundStyle(.secondary)
                     Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
+                        .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
             }
+            .tint(.primary)
 
-            goalRow
-            startDateRow
+            HStack {
+                Label("Goal", systemImage: "target")
+                    .foregroundStyle(.orange)
+                Spacer()
+                Text(data.goalType.rawValue)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Your Habit")
         }
     }
 
-    private var goalRow: some View {
-        HStack {
-            Label("Goal", systemImage: "target")
-            Spacer()
-            if editingGoal {
-                HStack(spacing: 8) {
-                    ForEach([HabitGoal.stopCompletely, .reduceOverTime], id: \.self) { goal in
-                        Button(goal == .stopCompletely ? "Stop" : "Reduce") {
-                            store.updateGoal(goal)
-                            editingGoal = false
-                        }
-                        .font(.subheadline.weight(.medium))
-                        .buttonStyle(.bordered)
-                        .tint(store.habitData.goal == goal ? .accentColor : .secondary)
+    private func settingsSection(data: HabitData) -> some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { store.notificationsEnabled },
+                set: { store.notificationsEnabled = $0 }
+            )) {
+                Label("Daily Reminder", systemImage: "bell.fill")
+                    .foregroundStyle(.primary)
+            }
+            .tint(.green)
+
+            Button {
+                showPaywall = true
+            } label: {
+                HStack {
+                    Label("QuitOne Pro", systemImage: "star.fill")
+                        .foregroundStyle(.orange)
+                    Spacer()
+                    if store.isPremium {
+                        Text("Active")
+                            .font(.subheadline)
+                            .foregroundStyle(.green)
+                    } else {
+                        Text("Upgrade")
+                            .font(.subheadline)
+                            .foregroundStyle(.blue)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
                 }
-            } else {
-                Button(store.habitData.goal.rawValue) {
-                    editingGoal = true
-                }
-                .foregroundStyle(Color.accentColor)
             }
+            .tint(.primary)
+        } header: {
+            Text("Settings")
         }
     }
-
-    private var startDateRow: some View {
-        HStack {
-            Label("Started", systemImage: "calendar")
-            Spacer()
-            if editingDate {
-                DatePicker("", selection: $editDate, in: ...Date(), displayedComponents: .date)
-                    .labelsHidden()
-                Button("Save") {
-                    store.updateStartDate(editDate)
-                    editingDate = false
-                }
-                .font(.subheadline.bold())
-            } else {
-                Button {
-                    editDate = store.habitData.startDate
-                    editingDate = true
-                } label: {
-                    Text(store.habitData.startDate, style: .date)
-                        .foregroundStyle(Color.accentColor)
-                }
-            }
-        }
-    }
-
-    // MARK: - Notifications
-
-    private var notificationSection: some View {
-        Section("Reminders") {
-            Toggle(isOn: Binding(
-                get: { store.habitData.notificationsEnabled },
-                set: { store.updateNotifications($0) }
-            )) {
-                Label("Daily reminder", systemImage: "bell")
-            }
-
-            if store.habitData.notificationsEnabled {
-                HStack {
-                    Label("Time", systemImage: "clock")
-                    Spacer()
-                    Text("9:00 AM")
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-
-    // MARK: - Support
 
     private var supportSection: some View {
-        Section("Support") {
+        Section {
             NavigationLink {
                 SupportView()
             } label: {
-                Label("Help & Support", systemImage: "questionmark.circle")
+                Label("Support", systemImage: "questionmark.circle.fill")
+                    .foregroundStyle(.blue)
             }
+
+            NavigationLink {
+                LegalView()
+            } label: {
+                Label("Privacy Policy", systemImage: "hand.raised.fill")
+                    .foregroundStyle(.blue)
+            }
+        } header: {
+            Text("Help")
         }
     }
-
-    // MARK: - Legal
-
-    private var legalSection: some View {
-        Section("Legal") {
-            ForEach(LegalPage.allCases, id: \.self) { page in
-                NavigationLink(value: page) {
-                    Label(page.rawValue, systemImage: page.icon)
-                }
-            }
-        }
-    }
-
-    // MARK: - Danger Zone
 
     private var dangerSection: some View {
         Section {
-            Button("Reset progress", role: .destructive) {
+            Button(role: .destructive) {
                 showResetAlert = true
+            } label: {
+                Label("Reset All Data", systemImage: "trash.fill")
             }
-            .alert("Reset your progress?", isPresented: $showResetAlert) {
-                Button("Reset", role: .destructive) { store.resetProgress() }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This will reset your current run and total days. This can't be undone.")
-            }
-
-            Button("Start over completely", role: .destructive) {
-                showResetAllAlert = true
-            }
-            .alert("Start over completely?", isPresented: $showResetAllAlert) {
-                Button("Start Over", role: .destructive) { store.resetAll() }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This will erase everything and take you back to setup.")
-            }
+        } footer: {
+            Text("This permanently removes all your progress and settings.")
         }
     }
-}
 
-// MARK: - Daily Spend Editor Sheet
-
-struct DailySpendEditorView: View {
-    let store: HabitStore
-    @Environment(\.dismiss) private var dismiss
-    @State private var selectedAmount: Double = 0
-    @State private var customText: String = ""
-    @State private var isCustom: Bool = false
-
-    private let presets: [Double] = [5, 10, 15, 20, 25, 30, 40, 50]
-
-    var body: some View {
+    private var editSpendSheet: some View {
         NavigationStack {
             VStack(spacing: 24) {
-                VStack(spacing: 8) {
-                    Text("Daily Spend")
-                        .font(.title2.bold())
-                    Text("How much do you usually spend per day?")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.top, 8)
+                Text("Update Daily Amount")
+                    .font(.title2.bold())
 
-                LazyVGrid(columns: [
-                    GridItem(.flexible(), spacing: 10),
-                    GridItem(.flexible(), spacing: 10),
-                    GridItem(.flexible(), spacing: 10),
-                    GridItem(.flexible(), spacing: 10)
-                ], spacing: 10) {
-                    ForEach(presets, id: \.self) { amount in
+                VStack(spacing: 10) {
+                    ForEach([5, 10, 15, 20, 25, 30], id: \.self) { amount in
                         Button {
-                            selectedAmount = amount
-                            isCustom = false
-                            customText = ""
+                            store.updateDailySpend(Double(amount))
+                            showCustomSpendField = false
+                            editSpendText = "\(amount)"
                         } label: {
-                            Text("$\(Int(amount))")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 52)
-                                .background(selectedAmount == amount && !isCustom ? Color.accentColor : Color(.tertiarySystemFill))
-                                .foregroundStyle(selectedAmount == amount && !isCustom ? .white : .primary)
-                                .clipShape(.rect(cornerRadius: 12))
+                            HStack {
+                                Text("$\(amount) per day")
+                                    .font(.body.weight(.medium))
+                                    .foregroundStyle(Int(editSpendText) == amount && !showCustomSpendField ? .white : .primary)
+                                Spacer()
+                                if Int(editSpendText) == amount && !showCustomSpendField {
+                                    Image(systemName: "checkmark")
+                                        .font(.subheadline.bold())
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                            .padding(16)
+                            .background(Int(editSpendText) == amount && !showCustomSpendField ? Color.green : Color(.secondarySystemGroupedBackground))
+                            .clipShape(.rect(cornerRadius: 12))
                         }
+                        .buttonStyle(.plain)
                     }
-                }
-                .padding(.horizontal, 20)
 
-                VStack(spacing: 12) {
                     Button {
-                        withAnimation(.snappy) {
-                            isCustom = true
-                            selectedAmount = 0
-                        }
+                        showCustomSpendField = true
+                        editSpendText = ""
                     } label: {
-                        Text("Custom amount")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(isCustom ? Color.accentColor : .secondary)
+                        HStack {
+                            Text("Custom amount")
+                                .font(.body.weight(.medium))
+                                .foregroundStyle(showCustomSpendField ? .white : .primary)
+                            Spacer()
+                        }
+                        .padding(16)
+                        .background(showCustomSpendField ? Color.green : Color(.secondarySystemGroupedBackground))
+                        .clipShape(.rect(cornerRadius: 12))
                     }
+                    .buttonStyle(.plain)
 
-                    if isCustom {
+                    if showCustomSpendField {
                         HStack {
                             Text("$")
                                 .font(.title2.bold())
-                                .foregroundStyle(.primary.opacity(0.5))
-                            TextField("Amount", text: $customText)
+                            TextField("0", text: $editSpendText)
                                 .font(.title2.bold())
                                 .keyboardType(.decimalPad)
-                                .onChange(of: customText) { _, newValue in
-                                    if let value = Double(newValue), value > 0 {
-                                        selectedAmount = value
-                                    }
-                                }
                         }
                         .padding(16)
-                        .background(Color(.tertiarySystemFill))
+                        .background(Color(.secondarySystemGroupedBackground))
                         .clipShape(.rect(cornerRadius: 12))
-                        .padding(.horizontal, 20)
-                        .transition(.scale.combined(with: .opacity))
                     }
                 }
 
                 Spacer()
-
-                Button {
-                    if selectedAmount > 0 {
-                        store.updateDailySpend(selectedAmount)
-                    }
-                    dismiss()
-                } label: {
-                    Text("Save")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(selectedAmount > 0 ? Color.accentColor : Color(.tertiarySystemFill))
-                        .foregroundStyle(selectedAmount > 0 ? .white : .secondary)
-                        .clipShape(.rect(cornerRadius: 16))
-                }
-                .disabled(selectedAmount <= 0)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 16)
             }
+            .padding(24)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") { showEditSpend = false }
                 }
-            }
-            .onAppear {
-                selectedAmount = store.habitData.dailySpend
-                if !presets.contains(selectedAmount) {
-                    isCustom = true
-                    customText = "\(Int(selectedAmount))"
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        if let val = Double(editSpendText), val > 0 {
+                            store.updateDailySpend(val)
+                        }
+                        showEditSpend = false
+                    }
+                    .disabled(showCustomSpendField && Double(editSpendText) == nil)
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+    }
+
+    private var editDateSheet: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Text("Update Start Date")
+                    .font(.title2.bold())
+
+                DatePicker("Start Date", selection: $editStartDate, in: ...Date(), displayedComponents: .date)
+                    .datePickerStyle(.graphical)
+                    .tint(.green)
+
+                Spacer()
+            }
+            .padding(24)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { showEditDate = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        store.updateStartDate(editStartDate)
+                        showEditDate = false
+                    }
+                }
+            }
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func formatMinutes(_ minutes: Int) -> String {
+        let h = minutes / 60
+        let m = minutes % 60
+        if h > 0 {
+            return "\(h)h \(m)m/day"
+        }
+        return "\(m)m/day"
     }
 }
