@@ -16,7 +16,7 @@ struct PaywallView: View {
                     VStack(spacing: 8) {
                         Text("Upgrade to QuitOne Pro")
                             .font(.title2.bold())
-                        Text("Get the most out of your journey.")
+                        Text("Get more from your progress")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -34,7 +34,7 @@ struct PaywallView: View {
                     VStack(spacing: 8) {
                         Text("7-day free trial")
                             .font(.headline)
-                        Text("then $4.99/year")
+                        Text("then $19.99/year")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
