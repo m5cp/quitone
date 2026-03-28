@@ -5,6 +5,7 @@ struct ProgressSharePremiumCard: View {
     let moneySavedText: String
     let isPremiumUnlocked: Bool
     let onTap: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(action: onTap) {
@@ -53,7 +54,7 @@ struct ProgressSharePremiumCard: View {
                 HStack {
                     Text(isPremiumUnlocked ? "Create Share Card" : "Unlock premium sharing")
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
-                        .foregroundStyle(isPremiumUnlocked ? Color.blue : Color.primary)
+                        .foregroundStyle(isPremiumUnlocked ? Color.green : Color.primary)
 
                     Spacer()
 
@@ -65,14 +66,32 @@ struct ProgressSharePremiumCard: View {
             .padding(22)
             .background(
                 RoundedRectangle(cornerRadius: 30)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 8)
+                    .fill(cardFill)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 30)
-                    .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                    .stroke(cardStroke, lineWidth: 1)
             )
+            .shadow(color: cardShadowColor, radius: colorScheme == .dark ? 0 : 20, x: 0, y: 8)
         }
         .buttonStyle(.plain)
+    }
+
+    private var cardFill: Color {
+        colorScheme == .dark
+            ? Color(red: 0.10, green: 0.10, blue: 0.12)
+            : Color(.systemBackground)
+    }
+
+    private var cardStroke: Color {
+        colorScheme == .dark
+            ? .white.opacity(0.06)
+            : Color.primary.opacity(0.06)
+    }
+
+    private var cardShadowColor: Color {
+        colorScheme == .dark
+            ? .clear
+            : .black.opacity(0.08)
     }
 }

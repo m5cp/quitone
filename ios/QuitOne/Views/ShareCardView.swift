@@ -54,23 +54,30 @@ enum ShareCardStyle: String, CaseIterable, Identifiable {
         }
     }
 
-    var statusText: String {
-        switch self {
-        case .bold: return "Still on track."
-        case .minimal: return "Going strong."
-        case .dark: return "Still on track."
-        case .gradient: return "Building momentum."
-        case .clean: return "Staying consistent."
-        }
+    func statusText(for days: Int) -> String {
+        let identityMessages: [(range: ClosedRange<Int>, messages: [String])] = [
+            (0...3, ["One day at a time.", "Still showing up.", "The journey begins."]),
+            (4...13, ["Building momentum.", "Still on track.", "Progress over perfection."]),
+            (14...29, ["Still showing up.", "Building something real.", "One day at a time."]),
+            (30...59, ["Quietly powerful.", "Still going.", "Real change in progress."]),
+            (60...99, ["Consistency speaks.", "Still on track.", "Becoming who I want to be."]),
+            (100...365, ["Still going.", "This is who I am now.", "Progress over perfection."]),
+        ]
+
+        let bucket = identityMessages.first { $0.range.contains(days) }
+            ?? identityMessages.last!
+
+        let index = (days + rawValue.count) % bucket.messages.count
+        return bucket.messages[index]
     }
 
     var bottomText: String {
         switch self {
-        case .bold: return "A calmer way to stay on track"
+        case .bold: return "Progress over perfection"
         case .minimal: return "One habit. One focus."
-        case .dark: return "A calmer way to stay on track"
-        case .gradient: return "Progress over perfection"
-        case .clean: return "Every day counts"
+        case .dark: return "Still showing up"
+        case .gradient: return "Building momentum"
+        case .clean: return "One day at a time"
         }
     }
 }
@@ -168,7 +175,7 @@ struct ShareCardView: View {
                             }
                     }
 
-                    Text(style.statusText)
+                    Text(style.statusText(for: currentRunDays))
                         .font(.system(size: 46, weight: .bold, design: .rounded))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.white)

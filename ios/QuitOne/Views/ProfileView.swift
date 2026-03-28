@@ -12,6 +12,7 @@ struct ProfileView: View {
     @State private var editStartDate: Date = Date()
     @State private var editSpendText: String = ""
     @State private var showCustomSpendField: Bool = false
+    @Environment(\.colorScheme) private var colorScheme
 
     private var data: HabitData? { store.habit }
 
@@ -25,6 +26,8 @@ struct ProfileView: View {
                 supportSection
                 dangerSection
             }
+            .scrollContentBackground(.hidden)
+            .background(screenBackground)
             .navigationTitle("Profile")
             .alert("Reset All Data?", isPresented: $showResetAlert) {
                 Button("Reset", role: .destructive) { store.resetAllData() }
@@ -45,6 +48,17 @@ struct ProfileView: View {
                 PaywallView()
             }
         }
+    }
+
+    private var screenBackground: some View {
+        Group {
+            if colorScheme == .dark {
+                Color(red: 0.04, green: 0.04, blue: 0.05)
+            } else {
+                Color(.systemGroupedBackground)
+            }
+        }
+        .ignoresSafeArea()
     }
 
     private func habitSection(data: HabitData) -> some View {
@@ -113,6 +127,7 @@ struct ProfileView: View {
         } header: {
             Text("Your Habit")
         }
+        .listRowBackground(listRowBg)
     }
 
     private var settingsSection: some View {
@@ -129,17 +144,22 @@ struct ProfileView: View {
             Button {
                 showPaywall = true
             } label: {
-                HStack {
-                    Label("QuitOne Pro", systemImage: "star.fill")
-                        .foregroundStyle(.orange)
+                HStack(spacing: 12) {
+                    Label {
+                        Text("QuitOne Pro")
+                            .font(.body.weight(.medium))
+                    } icon: {
+                        Image(systemName: "star.fill")
+                            .foregroundStyle(.orange)
+                    }
                     Spacer()
                     if store.isPremium {
                         Text("Active")
-                            .font(.subheadline)
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.green)
                     } else {
                         Text("Upgrade")
-                            .font(.subheadline)
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.blue)
                         Image(systemName: "chevron.right")
                             .font(.caption)
@@ -151,6 +171,7 @@ struct ProfileView: View {
         } header: {
             Text("Settings")
         }
+        .listRowBackground(listRowBg)
     }
 
     private var supportSection: some View {
@@ -178,6 +199,7 @@ struct ProfileView: View {
         } header: {
             Text("Help")
         }
+        .listRowBackground(listRowBg)
     }
 
     private var dangerSection: some View {
@@ -188,6 +210,17 @@ struct ProfileView: View {
                 Label("Reset All Data", systemImage: "trash.fill")
             }
         }
+        .listRowBackground(listRowBg)
+    }
+
+    private var listRowBg: Color {
+        colorScheme == .dark
+            ? Color(red: 0.10, green: 0.10, blue: 0.12)
+            : Color(.secondarySystemGroupedBackground)
+    }
+
+    private var isCustomHabit: Bool {
+        selectedHabitOption == nil && !customHabitName.isEmpty
     }
 
     private var editSpendSheet: some View {
@@ -271,10 +304,6 @@ struct ProfileView: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-    }
-
-    private var isCustomHabit: Bool {
-        selectedHabitOption == nil && !customHabitName.isEmpty
     }
 
     private var editHabitSheet: some View {

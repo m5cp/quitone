@@ -7,6 +7,7 @@ struct HabitProgressView: View {
     @State private var showPaywall: Bool = false
     @State private var showShareProgress: Bool = false
     @State private var now: Date = Date()
+    @Environment(\.colorScheme) private var colorScheme
 
     private let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
@@ -28,13 +29,13 @@ struct HabitProgressView: View {
                         shareProgressCard(data: data)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 8)
-                    .padding(.bottom, 32)
+                    .padding(.top, 12)
+                    .padding(.bottom, 100)
                 } else {
                     emptyState
                 }
             }
-            .background(Color(.systemBackground))
+            .background(screenBackground)
             .navigationTitle("Progress")
             .onReceive(timer) { _ in
                 now = Date()
@@ -46,6 +47,31 @@ struct HabitProgressView: View {
                 ShareProgressView(store: store)
             }
         }
+    }
+
+    private var screenBackground: some View {
+        Group {
+            if colorScheme == .dark {
+                Color(red: 0.04, green: 0.04, blue: 0.05)
+            } else {
+                Color(.systemBackground)
+            }
+        }
+        .ignoresSafeArea()
+    }
+
+    private var sectionCardBg: Color {
+        colorScheme == .dark
+            ? Color(red: 0.10, green: 0.10, blue: 0.12)
+            : Color(.secondarySystemGroupedBackground)
+    }
+
+    private var cardBorderColor: Color {
+        colorScheme == .dark ? .white.opacity(0.06) : .clear
+    }
+
+    private var subtleTextColor: Color {
+        colorScheme == .dark ? .white.opacity(0.4) : .secondary
     }
 
     private func liveSummaryCard(data: HabitData) -> some View {
@@ -60,15 +86,15 @@ struct HabitProgressView: View {
             return "\(days) day\(days == 1 ? "" : "s"), \(hours) hour\(hours == 1 ? "" : "s")"
         }()
 
-        return VStack(spacing: 14) {
-            HStack(spacing: 10) {
+        return VStack(spacing: 16) {
+            HStack(spacing: 12) {
                 Image(systemName: "clock.fill")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(.green)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text("Time on this journey")
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(subtleTextColor)
                     Text(elapsedStr)
                         .font(.title3.weight(.bold))
                 }
@@ -76,14 +102,14 @@ struct HabitProgressView: View {
             }
 
             if data.dailySpend > 0 {
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     Image(systemName: "dollarsign.circle.fill")
                         .font(.body.weight(.semibold))
                         .foregroundStyle(.green)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text("Total money saved")
                             .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(subtleTextColor)
                         Text("$\(Int(data.totalSaved))")
                             .font(.title3.weight(.bold))
                             .foregroundStyle(.green)
@@ -92,9 +118,13 @@ struct HabitProgressView: View {
                 }
             }
         }
-        .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(.rect(cornerRadius: 14))
+        .padding(18)
+        .background(sectionCardBg)
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(cardBorderColor, lineWidth: 1)
+        )
     }
 
     private func statsGrid(data: HabitData) -> some View {
@@ -109,18 +139,22 @@ struct HabitProgressView: View {
         VStack(spacing: 6) {
             Text(title)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(subtleTextColor)
             Text(value)
                 .font(.title.bold())
                 .foregroundStyle(color)
             Text(unit)
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(subtleTextColor)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(.rect(cornerRadius: 14))
+        .padding(.vertical, 18)
+        .background(sectionCardBg)
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(cardBorderColor, lineWidth: 1)
+        )
     }
 
     private func calendarSection(data: HabitData) -> some View {
@@ -158,7 +192,7 @@ struct HabitProgressView: View {
         let prevDaysOn = store.previousPeriodDaysOnTrack(last: 7)
         let diff = daysOn - prevDaysOn
 
-        return VStack(spacing: 16) {
+        return VStack(spacing: 18) {
             HStack {
                 Text("This Week")
                     .font(.headline)
@@ -166,38 +200,38 @@ struct HabitProgressView: View {
             }
 
             HStack(spacing: 0) {
-                VStack(spacing: 4) {
+                VStack(spacing: 5) {
                     Text("\(daysOn)")
                         .font(.title.bold())
                         .foregroundStyle(.green)
                     Text("of 7 days")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(subtleTextColor)
                 }
                 .frame(maxWidth: .infinity)
 
                 Divider().frame(height: 40)
 
-                VStack(spacing: 4) {
+                VStack(spacing: 5) {
                     Text("\(Int(rate * 100))%")
                         .font(.title.bold())
                         .foregroundStyle(rate >= 0.7 ? .green : .orange)
                     Text("consistency")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(subtleTextColor)
                 }
                 .frame(maxWidth: .infinity)
 
                 if data.dailySpend > 0 {
                     Divider().frame(height: 40)
 
-                    VStack(spacing: 4) {
+                    VStack(spacing: 5) {
                         Text("$\(Int(saved))")
                             .font(.title.bold())
                             .foregroundStyle(.green)
                         Text("saved")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(subtleTextColor)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -213,9 +247,13 @@ struct HabitProgressView: View {
                 comparisonLabel(text: "Slight dip from last week", color: .orange, icon: "arrow.down.right")
             }
         }
-        .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(.rect(cornerRadius: 14))
+        .padding(18)
+        .background(sectionCardBg)
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(cardBorderColor, lineWidth: 1)
+        )
     }
 
     private var weekDots: some View {
@@ -231,7 +269,7 @@ struct HabitProgressView: View {
                 VStack(spacing: 4) {
                     Text(shortDay(date))
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(subtleTextColor)
 
                     Circle()
                         .fill(dotColor(status: status, isToday: isToday))
@@ -270,6 +308,12 @@ struct HabitProgressView: View {
         VStack(spacing: 0) {
             if store.isPremium {
                 monthlySummaryContent(data: data)
+                    .background(sectionCardBg)
+                    .clipShape(.rect(cornerRadius: 16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(cardBorderColor, lineWidth: 1)
+                    )
             } else {
                 Button {
                     showPaywall = true
@@ -279,7 +323,9 @@ struct HabitProgressView: View {
                             .blur(radius: 4)
                             .allowsHitTesting(false)
 
-                        Divider()
+                        Rectangle()
+                            .fill(colorScheme == .dark ? .white.opacity(0.06) : Color(.separator).opacity(0.3))
+                            .frame(height: 1)
 
                         HStack(spacing: 8) {
                             Image(systemName: "lock.fill")
@@ -295,8 +341,12 @@ struct HabitProgressView: View {
                         }
                         .padding(16)
                     }
-                    .background(Color(.secondarySystemGroupedBackground))
-                    .clipShape(.rect(cornerRadius: 14))
+                    .background(sectionCardBg)
+                    .clipShape(.rect(cornerRadius: 16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(cardBorderColor, lineWidth: 1)
+                    )
                 }
                 .buttonStyle(.plain)
             }
@@ -318,25 +368,25 @@ struct HabitProgressView: View {
             }
 
             HStack(spacing: 0) {
-                VStack(spacing: 4) {
+                VStack(spacing: 5) {
                     Text("\(daysOn)")
                         .font(.title.bold())
                         .foregroundStyle(.blue)
                     Text("days on track")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(subtleTextColor)
                 }
                 .frame(maxWidth: .infinity)
 
                 Divider().frame(height: 40)
 
-                VStack(spacing: 4) {
+                VStack(spacing: 5) {
                     Text("\(Int(rate * 100))%")
                         .font(.title.bold())
                         .foregroundStyle(rate >= 0.7 ? .green : .orange)
                     Text("consistency")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(subtleTextColor)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -369,7 +419,7 @@ struct HabitProgressView: View {
                 }
             }
         }
-        .padding(16)
+        .padding(18)
     }
 
     private func milestoneCard(data: HabitData) -> some View {
@@ -399,7 +449,7 @@ struct HabitProgressView: View {
                                 Spacer()
                                 Text("\(run)/\(next.0) days")
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(subtleTextColor)
                             }
                             ProgressView(value: progress)
                                 .tint(.green)
@@ -416,14 +466,18 @@ struct HabitProgressView: View {
                                 Spacer()
                                 Text("\(milestone.0) days")
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(subtleTextColor)
                             }
                         }
                     }
                 }
-                .padding(16)
-                .background(Color(.secondarySystemGroupedBackground))
-                .clipShape(.rect(cornerRadius: 14))
+                .padding(18)
+                .background(sectionCardBg)
+                .clipShape(.rect(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(cardBorderColor, lineWidth: 1)
+                )
             }
         }
     }
@@ -436,13 +490,13 @@ struct HabitProgressView: View {
                         .font(.title2)
                         .foregroundStyle(.green)
                         .frame(width: 44, height: 44)
-                        .background(Color.green.opacity(0.12))
+                        .background(Color.green.opacity(colorScheme == .dark ? 0.15 : 0.10))
                         .clipShape(.rect(cornerRadius: 12))
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text("Estimated Savings")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(subtleTextColor)
                         Text("$\(Int(data.totalSaved))")
                             .font(.title2.bold())
                         Text("Based on $\(Int(data.dailySpend))/day")
@@ -452,10 +506,14 @@ struct HabitProgressView: View {
 
                     Spacer()
                 }
-                .padding(16)
+                .padding(18)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.secondarySystemGroupedBackground))
-                .clipShape(.rect(cornerRadius: 14))
+                .background(sectionCardBg)
+                .clipShape(.rect(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(cardBorderColor, lineWidth: 1)
+                )
             }
         }
     }
@@ -535,9 +593,13 @@ struct HabitProgressView: View {
                 )
             }
         }
-        .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(.rect(cornerRadius: 14))
+        .padding(18)
+        .background(sectionCardBg)
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(cardBorderColor, lineWidth: 1)
+        )
     }
 
     private var lockedInsightsPreview: some View {
@@ -551,10 +613,12 @@ struct HabitProgressView: View {
                     insightRow(icon: "dollarsign.arrow.trianglehead.counterclockwise.rotate.90", title: "Weekly Savings Trend", value: "—", color: Color(.quaternaryLabel))
                     insightRow(icon: "chart.bar.fill", title: "Avg Days On Track / Week", value: "—", color: Color(.quaternaryLabel))
                 }
-                .padding(16)
+                .padding(18)
                 .blur(radius: 3)
 
-                Divider()
+                Rectangle()
+                    .fill(colorScheme == .dark ? .white.opacity(0.06) : Color(.separator).opacity(0.3))
+                    .frame(height: 1)
 
                 HStack(spacing: 8) {
                     Image(systemName: "lock.fill")
@@ -570,8 +634,12 @@ struct HabitProgressView: View {
                 }
                 .padding(16)
             }
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(.rect(cornerRadius: 14))
+            .background(sectionCardBg)
+            .clipShape(.rect(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(cardBorderColor, lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
     }
@@ -616,6 +684,7 @@ struct HabitProgressView: View {
 
 struct WeekCalendarView: View {
     let store: HabitStore
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         let calendar = Calendar.current
@@ -628,8 +697,12 @@ struct WeekCalendarView: View {
             }
         }
         .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(.rect(cornerRadius: 14))
+        .background(colorScheme == .dark ? Color(red: 0.10, green: 0.10, blue: 0.12) : Color(.secondarySystemGroupedBackground))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(colorScheme == .dark ? .white.opacity(0.06) : .clear, lineWidth: 1)
+        )
     }
 }
 
@@ -687,6 +760,7 @@ struct MonthCalendarView: View {
     let store: HabitStore
     @Binding var showPaywall: Bool
     @State private var monthOffset: Int = 0
+    @Environment(\.colorScheme) private var colorScheme
 
     private var displayedMonth: Date {
         Calendar.current.date(byAdding: .month, value: monthOffset, to: Date()) ?? Date()
@@ -784,8 +858,12 @@ struct MonthCalendarView: View {
             }
         }
         .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(.rect(cornerRadius: 14))
+        .background(colorScheme == .dark ? Color(red: 0.10, green: 0.10, blue: 0.12) : Color(.secondarySystemGroupedBackground))
+        .clipShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(colorScheme == .dark ? .white.opacity(0.06) : .clear, lineWidth: 1)
+        )
     }
 }
 

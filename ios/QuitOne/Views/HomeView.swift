@@ -10,6 +10,7 @@ struct CheckInButton: View {
     let label: String
     let style: CheckInButtonStyle
     let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button {
@@ -23,20 +24,35 @@ struct CheckInButton: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
-                        .background(Color.green)
-                        .clipShape(.rect(cornerRadius: 14))
+                        .background(
+                            LinearGradient(
+                                colors: colorScheme == .dark
+                                    ? [Color(red: 0.18, green: 0.72, blue: 0.32), Color(red: 0.14, green: 0.62, blue: 0.28)]
+                                    : [Color(red: 0.22, green: 0.78, blue: 0.38), Color(red: 0.18, green: 0.70, blue: 0.32)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .clipShape(.rect(cornerRadius: 16))
+                        .shadow(color: .green.opacity(colorScheme == .dark ? 0.3 : 0.18), radius: 12, y: 4)
                 case .slip:
                     Text(label)
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color(.tertiarySystemGroupedBackground))
-                        .clipShape(.rect(cornerRadius: 12))
+                        .padding(.vertical, 15)
+                        .background(slipBackground)
+                        .clipShape(.rect(cornerRadius: 14))
                 }
             }
         }
         .buttonStyle(CheckInPressStyle())
+    }
+
+    private var slipBackground: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.06)
+            : Color(.tertiarySystemGroupedBackground)
     }
 }
 
@@ -58,6 +74,7 @@ struct HomeView: View {
     @State private var showSlipConfirmation: Bool = false
     @State private var slipHapticTrigger: Int = 0
     @State private var now: Date = Date()
+    @Environment(\.colorScheme) private var colorScheme
 
     private let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
@@ -66,7 +83,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 28) {
                     headerSection
                     heroCard
                     actionButtons
@@ -75,10 +92,10 @@ struct HomeView: View {
                     insightCard
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 32)
+                .padding(.top, 20)
+                .padding(.bottom, 100)
             }
-            .background(Color(.systemBackground))
+            .background(screenBackground)
             .sensoryFeedback(.success, trigger: checkInBounce)
             .sensoryFeedback(.selection, trigger: slipHapticTrigger)
             .confirmationDialog("Had a slip?", isPresented: $showSlipConfirm, titleVisibility: .visible) {
@@ -111,10 +128,21 @@ struct HomeView: View {
         }
     }
 
+    private var screenBackground: some View {
+        Group {
+            if colorScheme == .dark {
+                Color(red: 0.04, green: 0.04, blue: 0.05)
+            } else {
+                Color(.systemBackground)
+            }
+        }
+        .ignoresSafeArea()
+    }
+
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(data?.habitName ?? "Your Habit")
-                .font(.title2.bold())
+                .font(.system(size: 28, weight: .bold))
 
             Text(statusMessage)
                 .font(.body)
@@ -151,36 +179,38 @@ struct HomeView: View {
     }
 
     private var heroCard: some View {
-        VStack(spacing: 16) {
-            VStack(spacing: 4) {
+        VStack(spacing: 20) {
+            VStack(spacing: 6) {
                 Text("DAY")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.secondary)
-                    .tracking(3)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(colorScheme == .dark ? .white.opacity(0.4) : .secondary)
+                    .tracking(4)
 
                 Text("\(data?.currentRunDays ?? 0)")
-                    .font(.system(size: 80, weight: .heavy, design: .rounded))
+                    .font(.system(size: 88, weight: .heavy, design: .rounded))
                     .foregroundStyle(.green)
                     .contentTransition(.numericText())
+                    .shadow(color: .green.opacity(colorScheme == .dark ? 0.25 : 0.0), radius: 20, y: 4)
             }
 
             if !elapsedText.isEmpty {
                 Text(elapsedText)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(colorScheme == .dark ? .white.opacity(0.5) : .secondary)
             }
 
             if let data, data.dailySpend > 0 {
-                Text("$\(Int(data.totalSaved)) saved")
-                    .font(.title3.bold())
-                    .foregroundStyle(.green)
-                    .padding(.top, 4)
+                HStack(spacing: 8) {
+                    Image(systemName: "dollarsign.circle.fill")
+                        .foregroundStyle(.green)
+                    Text("$\(Int(data.totalSaved)) saved")
+                        .font(.title3.bold())
+                        .foregroundStyle(.green)
+                }
+                .padding(.top, 2)
             }
 
-            Rectangle()
-                .fill(Color(.separator).opacity(0.3))
-                .frame(height: 1)
-                .padding(.horizontal, 20)
+            heroDivider
 
             HStack(spacing: 0) {
                 statItem(
@@ -188,7 +218,7 @@ struct HomeView: View {
                     value: "\(data?.currentRunDays ?? 0) days"
                 )
                 Rectangle()
-                    .fill(Color(.separator).opacity(0.3))
+                    .fill(dividerColor)
                     .frame(width: 1, height: 36)
                 statItem(
                     title: "Total Progress",
@@ -196,18 +226,54 @@ struct HomeView: View {
                 )
             }
         }
-        .padding(.vertical, 28)
-        .padding(.horizontal, 20)
+        .padding(.vertical, 32)
+        .padding(.horizontal, 24)
         .frame(maxWidth: .infinity)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(.rect(cornerRadius: 20))
+        .background(cardBackground)
+        .clipShape(.rect(cornerRadius: 24))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(cardBorder, lineWidth: 1)
+        )
+        .shadow(color: cardShadow, radius: colorScheme == .dark ? 0 : 16, y: colorScheme == .dark ? 0 : 6)
+    }
+
+    private var heroDivider: some View {
+        Rectangle()
+            .fill(dividerColor)
+            .frame(height: 1)
+            .padding(.horizontal, 16)
+    }
+
+    private var dividerColor: Color {
+        colorScheme == .dark ? .white.opacity(0.08) : Color(.separator).opacity(0.3)
+    }
+
+    private var cardBackground: some View {
+        Group {
+            if colorScheme == .dark {
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color(red: 0.10, green: 0.10, blue: 0.12))
+            } else {
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color(.secondarySystemGroupedBackground))
+            }
+        }
+    }
+
+    private var cardBorder: Color {
+        colorScheme == .dark ? .white.opacity(0.06) : .clear
+    }
+
+    private var cardShadow: Color {
+        colorScheme == .dark ? .clear : .black.opacity(0.06)
     }
 
     private func statItem(title: String, value: String) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 5) {
             Text(title)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(colorScheme == .dark ? .white.opacity(0.4) : .secondary)
             Text(value)
                 .font(.subheadline.weight(.semibold))
         }
@@ -230,9 +296,9 @@ struct HomeView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
                     .background(
-                        Color.green.opacity(showCheckInConfirmation ? 0.18 : 0.12)
+                        Color.green.opacity(showCheckInConfirmation ? 0.18 : 0.10)
                     )
-                    .clipShape(.rect(cornerRadius: 14))
+                    .clipShape(.rect(cornerRadius: 16))
                     .transition(.asymmetric(
                         insertion: .scale(scale: 0.95).combined(with: .opacity),
                         removal: .opacity
@@ -248,8 +314,8 @@ struct HomeView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
-                    .background(Color.orange.opacity(0.12))
-                    .clipShape(.rect(cornerRadius: 14))
+                    .background(Color.orange.opacity(0.10))
+                    .clipShape(.rect(cornerRadius: 16))
                     .transition(.asymmetric(
                         insertion: .scale(scale: 0.95).combined(with: .opacity),
                         removal: .opacity
@@ -280,18 +346,17 @@ struct HomeView: View {
         Group {
             if let data, data.dailySpend > 0, data.totalSaved > 1 {
                 let insight = progressInsight(saved: data.totalSaved, dailySpend: data.dailySpend, days: data.currentRunDays)
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Your Progress")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
-                        .tracking(0.5)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("YOUR PROGRESS")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(colorScheme == .dark ? .white.opacity(0.35) : .secondary)
+                        .tracking(1)
 
-                    HStack(spacing: 12) {
+                    HStack(spacing: 14) {
                         Image(systemName: insight.icon)
                             .font(.title2)
                             .foregroundStyle(.green)
-                            .frame(width: 36)
+                            .frame(width: 38)
 
                         Text(insight.text)
                             .font(.subheadline.weight(.medium))
@@ -300,11 +365,21 @@ struct HomeView: View {
                         Spacer()
                     }
                 }
-                .padding(16)
-                .background(Color(.secondarySystemGroupedBackground))
-                .clipShape(.rect(cornerRadius: 14))
+                .padding(18)
+                .background(secondaryCardBackground)
+                .clipShape(.rect(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(cardBorder, lineWidth: 1)
+                )
             }
         }
+    }
+
+    private var secondaryCardBackground: Color {
+        colorScheme == .dark
+            ? Color(red: 0.10, green: 0.10, blue: 0.12)
+            : Color(.secondarySystemGroupedBackground)
     }
 
     private func progressInsight(saved: Double, dailySpend: Double, days: Int) -> (text: String, icon: String) {
@@ -333,23 +408,32 @@ struct HomeView: View {
             }
             .foregroundStyle(.green)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(Color.green.opacity(0.1))
-            .clipShape(.rect(cornerRadius: 12))
+            .padding(.vertical, 15)
+            .background(Color.green.opacity(colorScheme == .dark ? 0.12 : 0.08))
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.green.opacity(colorScheme == .dark ? 0.2 : 0.0), lineWidth: 1)
+            )
         }
     }
 
     private var insightCard: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             Image(systemName: "sparkle")
                 .foregroundStyle(.green)
+                .font(.body)
             Text(insightMessages[insightIndex % insightMessages.count])
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(colorScheme == .dark ? .white.opacity(0.55) : .secondary)
             Spacer()
         }
-        .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(.rect(cornerRadius: 12))
+        .padding(18)
+        .background(secondaryCardBackground)
+        .clipShape(.rect(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(cardBorder, lineWidth: 1)
+        )
     }
 }
