@@ -9,6 +9,8 @@ struct OnboardingView: View {
     @State private var customSpendText: String = ""
     @State private var showCustomSpend: Bool = false
     @State private var goalType: GoalType = .stop
+    @State private var startDate: Date = Date()
+    @State private var useCustomStartDate: Bool = false
 
     private var habitName: String {
         selectedHabit?.name ?? customHabitName
@@ -27,8 +29,9 @@ struct OnboardingView: View {
                     switch step {
                     case 1: habitSelectionStep
                     case 2: moneyStep
-                    case 3: goalStep
-                    case 4: readyStep
+                    case 3: startDateStep
+                    case 4: goalStep
+                    case 5: readyStep
                     default: EmptyView()
                     }
                 }
@@ -46,7 +49,7 @@ struct OnboardingView: View {
 
     private var progressBar: some View {
         HStack(spacing: 6) {
-            ForEach(1...4, id: \.self) { i in
+            ForEach(1...5, id: \.self) { i in
                 Capsule()
                     .fill(i <= step ? Color.green : Color(.tertiarySystemFill))
                     .frame(height: 4)
@@ -194,6 +197,75 @@ struct OnboardingView: View {
         }
     }
 
+    private var startDateStep: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Text("When do you want\nto start?")
+                .font(.title.bold())
+
+            VStack(spacing: 10) {
+                Button {
+                    withAnimation(.snappy) {
+                        useCustomStartDate = false
+                        startDate = Date()
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "calendar.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(!useCustomStartDate ? .white : .green)
+                        Text("Today")
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(!useCustomStartDate ? .white : .primary)
+                        Spacer()
+                        if !useCustomStartDate {
+                            Image(systemName: "checkmark")
+                                .font(.subheadline.bold())
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .padding(16)
+                    .background(!useCustomStartDate ? Color.green : Color(.secondarySystemGroupedBackground))
+                    .clipShape(.rect(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    withAnimation(.snappy) {
+                        useCustomStartDate = true
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "calendar")
+                            .font(.title3)
+                            .foregroundStyle(useCustomStartDate ? .white : .green)
+                        Text("Pick a date")
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(useCustomStartDate ? .white : .primary)
+                        Spacer()
+                        if useCustomStartDate {
+                            Image(systemName: "checkmark")
+                                .font(.subheadline.bold())
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .padding(16)
+                    .background(useCustomStartDate ? Color.green : Color(.secondarySystemGroupedBackground))
+                    .clipShape(.rect(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+
+                if useCustomStartDate {
+                    DatePicker("Start Date", selection: $startDate, in: ...Date(), displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .tint(.green)
+                        .padding(12)
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .clipShape(.rect(cornerRadius: 12))
+                }
+            }
+        }
+    }
+
     private var goalStep: some View {
         VStack(alignment: .leading, spacing: 24) {
             Text("What's your goal?")
@@ -256,7 +328,7 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             Divider()
             Group {
-                if step == 4 {
+                if step == 5 {
                     Button {
                         finishOnboarding()
                     } label: {
@@ -309,9 +381,11 @@ struct OnboardingView: View {
             spend = val
         }
 
+        let chosenDate = useCustomStartDate ? startDate : Date()
+
         let data = HabitData(
             habitName: habitName,
-            startDate: Date(),
+            startDate: chosenDate,
             goalType: goalType,
             dailySpend: spend,
             completionHistory: []

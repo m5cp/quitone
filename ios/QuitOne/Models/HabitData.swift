@@ -187,9 +187,8 @@ let allHabitOptions: [HabitOption] = [
     HabitOption(name: "Alcohol", icon: "wineglass.fill"),
     HabitOption(name: "Energy Drinks / Coffee", icon: "cup.and.saucer.fill"),
     HabitOption(name: "Recreational Drugs", icon: "pills.fill"),
-    HabitOption(name: "Sugar / Junk Food", icon: "birthday.cake.fill"),
-    HabitOption(name: "Online Shopping", icon: "cart.fill"),
-    HabitOption(name: "Takeout / Delivery", icon: "takeoutbag.and.cup.and.straw.fill"),
+    HabitOption(name: "Takeout / Food Spending", icon: "takeoutbag.and.cup.and.straw.fill"),
+    HabitOption(name: "Impulsive Shopping", icon: "cart.fill"),
 ]
 
 let onTrackMessages: [String] = [

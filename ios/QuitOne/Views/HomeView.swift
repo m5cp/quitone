@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 nonisolated enum CheckInButtonStyle {
     case onTrack
@@ -9,8 +10,6 @@ struct CheckInButton: View {
     let label: String
     let style: CheckInButtonStyle
     let action: () -> Void
-
-    @State private var isPressed: Bool = false
 
     var body: some View {
         Button {
@@ -58,16 +57,20 @@ struct HomeView: View {
     @State private var showCheckInConfirmation: Bool = false
     @State private var showSlipConfirmation: Bool = false
     @State private var slipHapticTrigger: Int = 0
+    @State private var now: Date = Date()
+
+    private let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     private var data: HabitData? { store.habit }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 28) {
+                VStack(spacing: 24) {
                     headerSection
                     heroCard
                     actionButtons
+                    savingsInsightCard
                     shareButton
                     insightCard
                 }
@@ -97,6 +100,10 @@ struct HomeView: View {
             }
             .onAppear {
                 insightIndex = Int.random(in: 0..<insightMessages.count)
+                now = Date()
+            }
+            .onReceive(timer) { _ in
+                now = Date()
             }
             .sheet(isPresented: $showShareCard) {
                 ShareProgressView(store: store)
@@ -122,7 +129,7 @@ struct HomeView: View {
             return slipRecoveryMessages[insightIndex % slipRecoveryMessages.count]
         }
         if data.hasCheckedInToday {
-            return "Checked in today. Great work."
+            return "You're still on track."
         }
         if data.currentRunDays > 0 {
             return onTrackMessages[insightIndex % onTrackMessages.count]
@@ -130,40 +137,63 @@ struct HomeView: View {
         return "Ready when you are."
     }
 
+    private var elapsedText: String {
+        guard let data else { return "" }
+        let interval = now.timeIntervalSince(data.startDate)
+        guard interval > 0 else { return "" }
+        let totalHours = Int(interval / 3600)
+        let days = totalHours / 24
+        let hours = totalHours % 24
+        if days == 0 {
+            return "\(hours) hour\(hours == 1 ? "" : "s")"
+        }
+        return "\(days) day\(days == 1 ? "" : "s"), \(hours) hour\(hours == 1 ? "" : "s")"
+    }
+
     private var heroCard: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             VStack(spacing: 4) {
                 Text("DAY")
-                    .font(.caption.weight(.semibold))
+                    .font(.caption.weight(.bold))
                     .foregroundStyle(.secondary)
-                    .tracking(2)
+                    .tracking(3)
 
                 Text("\(data?.currentRunDays ?? 0)")
-                    .font(.system(size: 72, weight: .bold, design: .rounded))
+                    .font(.system(size: 80, weight: .heavy, design: .rounded))
                     .foregroundStyle(.green)
                     .contentTransition(.numericText())
             }
 
-            Divider()
-                .padding(.horizontal, 24)
+            if !elapsedText.isEmpty {
+                Text(elapsedText)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+
+            if let data, data.dailySpend > 0 {
+                Text("$\(Int(data.totalSaved)) saved")
+                    .font(.title3.bold())
+                    .foregroundStyle(.green)
+                    .padding(.top, 4)
+            }
+
+            Rectangle()
+                .fill(Color(.separator).opacity(0.3))
+                .frame(height: 1)
+                .padding(.horizontal, 20)
 
             HStack(spacing: 0) {
                 statItem(
                     title: "Current Run",
                     value: "\(data?.currentRunDays ?? 0) days"
                 )
-                Divider()
-                    .frame(height: 36)
+                Rectangle()
+                    .fill(Color(.separator).opacity(0.3))
+                    .frame(width: 1, height: 36)
                 statItem(
                     title: "Total Progress",
                     value: "\(data?.totalProgressDays ?? 0) days"
                 )
-            }
-
-            if let data, data.dailySpend > 0 {
-                Text("$\(Int(data.totalSaved)) saved")
-                    .font(.headline)
-                    .foregroundStyle(.green)
             }
         }
         .padding(.vertical, 28)
@@ -244,6 +274,68 @@ struct HomeView: View {
                 }
             }
         }
+    }
+
+    private var savingsInsightCard: some View {
+        Group {
+            if let data, data.dailySpend > 0, data.totalSaved > 1 {
+                let insight = savingsEquivalent(for: data.totalSaved)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("What your savings could cover")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                        .tracking(0.5)
+
+                    HStack(spacing: 12) {
+                        Image(systemName: insight.icon)
+                            .font(.title2)
+                            .foregroundStyle(.green)
+                            .frame(width: 36)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(insight.text)
+                                .font(.subheadline.weight(.semibold))
+                            Text("$\(Int(data.totalSaved)) saved so far")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+                    }
+                }
+                .padding(16)
+                .background(Color(.secondarySystemGroupedBackground))
+                .clipShape(.rect(cornerRadius: 14))
+            }
+        }
+    }
+
+    private func savingsEquivalent(for amount: Double) -> (text: String, icon: String) {
+        let equivalents: [(threshold: Double, text: String, icon: String)] = [
+            (5, "A fancy coffee", "cup.and.saucer.fill"),
+            (12, "A movie ticket", "film.fill"),
+            (15, "Lunch for the day", "fork.knife"),
+            (25, "A streaming subscription", "play.tv.fill"),
+            (40, "A tank of gas", "fuelpump.fill"),
+            (50, "A nice dinner out", "fork.knife"),
+            (75, "A pair of shoes", "shoeprints.fill"),
+            (100, "A weekend getaway fund", "airplane"),
+            (150, "New headphones", "headphones"),
+            (200, "A short trip", "car.fill"),
+            (300, "A new gadget", "iphone"),
+            (500, "A vacation starter", "sun.max.fill"),
+            (750, "A month's groceries", "cart.fill"),
+            (1000, "A major upgrade", "star.fill"),
+        ]
+
+        var best = equivalents[0]
+        for eq in equivalents {
+            if amount >= eq.threshold {
+                best = eq
+            }
+        }
+        return (text: best.text, icon: best.icon)
     }
 
     private var shareButton: some View {
