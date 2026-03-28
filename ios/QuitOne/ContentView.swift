@@ -25,6 +25,15 @@ nonisolated enum QuitOneTab: Int, CaseIterable, Sendable {
 struct ContentView: View {
     @State private var store = HabitStore()
     @State private var selectedTab: QuitOneTab = .home
+    @AppStorage("appearanceMode") private var appearanceMode: Int = 0
+
+    private var resolvedColorScheme: ColorScheme? {
+        switch appearanceMode {
+        case 1: return .light
+        case 2: return .dark
+        default: return nil
+        }
+    }
 
     var body: some View {
         if store.hasCompletedOnboarding {
@@ -54,8 +63,10 @@ struct ContentView: View {
             .onAppear {
                 store.syncWidget()
             }
+            .preferredColorScheme(resolvedColorScheme)
         } else {
             OnboardingView(store: store)
+                .preferredColorScheme(resolvedColorScheme)
         }
     }
 }

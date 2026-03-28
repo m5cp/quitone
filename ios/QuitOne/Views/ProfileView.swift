@@ -12,6 +12,7 @@ struct ProfileView: View {
     @State private var editStartDate: Date = Date()
     @State private var editSpendText: String = ""
     @State private var showCustomSpendField: Bool = false
+    @AppStorage("appearanceMode") private var appearanceMode: Int = 0
     @Environment(\.colorScheme) private var colorScheme
 
     private var data: HabitData? { store.habit }
@@ -132,6 +133,19 @@ struct ProfileView: View {
 
     private var settingsSection: some View {
         Section {
+            HStack {
+                Label("Appearance", systemImage: "circle.lefthalf.filled")
+                    .foregroundStyle(.primary)
+                Spacer()
+                Picker("", selection: $appearanceMode) {
+                    Text("System").tag(0)
+                    Text("Light").tag(1)
+                    Text("Dark").tag(2)
+                }
+                .pickerStyle(.menu)
+                .tint(.green)
+            }
+
             Toggle(isOn: Binding(
                 get: { store.notificationsEnabled },
                 set: { store.notificationsEnabled = $0 }
