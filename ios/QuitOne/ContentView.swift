@@ -28,22 +28,29 @@ struct ContentView: View {
 
     var body: some View {
         if store.hasCompletedOnboarding {
-            ZStack(alignment: .bottom) {
-                TabView(selection: $selectedTab) {
-                    HomeView(store: store)
-                        .tag(QuitOneTab.home)
+            TabView(selection: $selectedTab) {
+                HomeView(store: store)
+                    .tag(QuitOneTab.home)
+                    .tabItem {
+                        Image(systemName: QuitOneTab.home.icon)
+                        Text(QuitOneTab.home.title)
+                    }
 
-                    HabitProgressView(store: store)
-                        .tag(QuitOneTab.progress)
+                HabitProgressView(store: store)
+                    .tag(QuitOneTab.progress)
+                    .tabItem {
+                        Image(systemName: QuitOneTab.progress.icon)
+                        Text(QuitOneTab.progress.title)
+                    }
 
-                    ProfileView(store: store)
-                        .tag(QuitOneTab.profile)
-                }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-
-                CustomTabBar(selectedTab: $selectedTab)
+                ProfileView(store: store)
+                    .tag(QuitOneTab.profile)
+                    .tabItem {
+                        Image(systemName: QuitOneTab.profile.icon)
+                        Text(QuitOneTab.profile.title)
+                    }
             }
-            .ignoresSafeArea(.keyboard)
+            .tint(.green)
             .onAppear {
                 store.syncWidget()
             }
