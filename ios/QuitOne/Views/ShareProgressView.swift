@@ -10,6 +10,8 @@ struct ShareProgressView: View {
 
     private var data: HabitData? { store.habit }
 
+    private let previewScale: CGFloat = 0.3
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -63,8 +65,10 @@ struct ShareProgressView: View {
                     bestStreak: store.bestRun(),
                     style: selectedStyle
                 )
+                .scaleEffect(previewScale)
+                .frame(width: 1080 * previewScale, height: 1920 * previewScale)
                 .clipShape(.rect(cornerRadius: 20))
-                .shadow(color: .black.opacity(0.1), radius: 20, y: 10)
+                .shadow(color: .black.opacity(0.15), radius: 20, y: 10)
             }
         }
     }
@@ -96,7 +100,13 @@ struct ShareProgressView: View {
         } label: {
             VStack(spacing: 8) {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(thumbnailColor(for: style))
+                    .fill(
+                        LinearGradient(
+                            colors: style.backgroundColors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .frame(width: 56, height: 56)
                     .overlay {
                         if style.isPremium && !store.isPremium {
@@ -104,9 +114,9 @@ struct ShareProgressView: View {
                                 .font(.caption)
                                 .foregroundStyle(.white.opacity(0.8))
                         } else {
-                            Text("A")
-                                .font(.system(size: 20, weight: .bold, design: .rounded))
-                                .foregroundStyle(thumbnailTextColor(for: style))
+                            Circle()
+                                .fill(style.accent.opacity(0.5))
+                                .frame(width: 20, height: 20)
                         }
                     }
                     .overlay {
@@ -122,26 +132,6 @@ struct ShareProgressView: View {
             }
         }
         .buttonStyle(.plain)
-    }
-
-    private func thumbnailColor(for style: ShareCardStyle) -> Color {
-        switch style {
-        case .bold: return .white
-        case .minimal: return Color(red: 0.97, green: 0.97, blue: 0.96)
-        case .dark: return Color(red: 0.08, green: 0.08, blue: 0.08)
-        case .gradient: return Color(red: 0.12, green: 0.56, blue: 0.42)
-        case .clean: return Color(red: 0.95, green: 0.97, blue: 0.95)
-        }
-    }
-
-    private func thumbnailTextColor(for style: ShareCardStyle) -> Color {
-        switch style {
-        case .bold: return .green
-        case .minimal: return .black
-        case .dark: return .green
-        case .gradient: return .white
-        case .clean: return .green
-        }
     }
 
     private var shareButton: some View {
@@ -174,7 +164,7 @@ struct ShareProgressView: View {
         )
 
         let renderer = ImageRenderer(content: cardView)
-        renderer.scale = 3.0
+        renderer.scale = 1.0
         renderedImage = renderer.uiImage
     }
 

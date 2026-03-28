@@ -28,6 +28,73 @@ enum ShareCardStyle: String, CaseIterable, Identifiable {
         case .clean: return true
         }
     }
+
+    var accent: Color {
+        switch self {
+        case .bold: return Color(red: 0.20, green: 0.78, blue: 0.35)
+        case .minimal: return .white.opacity(0.6)
+        case .dark: return Color(red: 0.30, green: 0.85, blue: 0.45)
+        case .gradient: return Color(red: 0.40, green: 0.90, blue: 0.65)
+        case .clean: return Color(red: 0.55, green: 0.75, blue: 1.0)
+        }
+    }
+
+    var backgroundColors: [Color] {
+        switch self {
+        case .bold:
+            return [Color.black, Color(red: 0.05, green: 0.08, blue: 0.16), Color.black]
+        case .minimal:
+            return [Color(red: 0.06, green: 0.06, blue: 0.06), Color(red: 0.10, green: 0.10, blue: 0.12), Color(red: 0.06, green: 0.06, blue: 0.06)]
+        case .dark:
+            return [Color(red: 0.04, green: 0.04, blue: 0.08), Color(red: 0.08, green: 0.06, blue: 0.14), Color(red: 0.04, green: 0.04, blue: 0.08)]
+        case .gradient:
+            return [Color(red: 0.02, green: 0.10, blue: 0.08), Color(red: 0.06, green: 0.18, blue: 0.14), Color(red: 0.02, green: 0.10, blue: 0.08)]
+        case .clean:
+            return [Color(red: 0.04, green: 0.06, blue: 0.12), Color(red: 0.08, green: 0.10, blue: 0.18), Color(red: 0.04, green: 0.06, blue: 0.12)]
+        }
+    }
+
+    var statusText: String {
+        switch self {
+        case .bold: return "Still on track."
+        case .minimal: return "Going strong."
+        case .dark: return "Still on track."
+        case .gradient: return "Building momentum."
+        case .clean: return "Staying consistent."
+        }
+    }
+
+    var bottomText: String {
+        switch self {
+        case .bold: return "A calmer way to stay on track"
+        case .minimal: return "One habit. One focus."
+        case .dark: return "A calmer way to stay on track"
+        case .gradient: return "Progress over perfection"
+        case .clean: return "Every day counts"
+        }
+    }
+}
+
+nonisolated enum ShareMetricStyle: Sendable {
+    case moneySaved(amount: String)
+    case timeReclaimed(value: String)
+    case consistency(text: String)
+
+    var icon: String {
+        switch self {
+        case .moneySaved: return "dollarsign.circle.fill"
+        case .timeReclaimed: return "clock.fill"
+        case .consistency: return "sparkles"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .moneySaved(let amount): return "\(amount) saved"
+        case .timeReclaimed(let value): return "\(value) reclaimed"
+        case .consistency(let text): return text
+        }
+    }
 }
 
 struct ShareCardView: View {
@@ -38,278 +105,144 @@ struct ShareCardView: View {
     let bestStreak: Int
     let style: ShareCardStyle
 
+    private var metric: ShareMetricStyle {
+        if dailySpend > 0 && totalSaved > 0 {
+            return .moneySaved(amount: "$\(Int(totalSaved))")
+        } else {
+            return .consistency(text: "Building consistency")
+        }
+    }
+
     var body: some View {
-        Group {
-            switch style {
-            case .bold: boldCard
-            case .minimal: minimalCard
-            case .dark: darkCard
-            case .gradient: gradientCard
-            case .clean: cleanCard
-            }
-        }
-        .frame(width: 360, height: 640)
-    }
-
-    private var boldCard: some View {
-        ZStack {
-            Color.white
-
-            VStack(spacing: 0) {
-                Spacer()
-
-                VStack(spacing: 8) {
-                    Text("DAY")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .tracking(6)
-                        .foregroundStyle(Color(.systemGray3))
-
-                    Text("\(currentRunDays)")
-                        .font(.system(size: 120, weight: .bold, design: .rounded))
-                        .foregroundStyle(.green)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-                }
-
-                Spacer().frame(height: 16)
-
-                Text("Still on track.")
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(.black.opacity(0.7))
-
-                Spacer().frame(height: 40)
-
-                if dailySpend > 0 && totalSaved > 0 {
-                    HStack(spacing: 6) {
-                        Image(systemName: "dollarsign.circle.fill")
-                            .font(.system(size: 18))
-                            .foregroundStyle(.green)
-                        Text("$\(Int(totalSaved)) saved")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(.black.opacity(0.6))
-                    }
-
-                    Spacer().frame(height: 12)
-                }
-
-                if bestStreak > 1 {
-                    HStack(spacing: 6) {
-                        Image(systemName: "flame.fill")
-                            .font(.system(size: 16))
-                            .foregroundStyle(.orange)
-                        Text("Best streak: \(bestStreak) days")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(.black.opacity(0.45))
-                    }
-                }
-
-                Spacer()
-
-                Text("QuitOne")
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundStyle(.black.opacity(0.2))
-                    .padding(.bottom, 32)
-            }
-        }
-    }
-
-    private var minimalCard: some View {
-        ZStack {
-            Color(red: 0.97, green: 0.97, blue: 0.96)
-
-            VStack(spacing: 0) {
-                Spacer()
-
-                Text("\(currentRunDays)")
-                    .font(.system(size: 140, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.black)
-                    .minimumScaleFactor(0.5)
-                    .lineLimit(1)
-
-                Text("days strong")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(.black.opacity(0.4))
-                    .padding(.top, -8)
-
-                Spacer().frame(height: 48)
-
-                if dailySpend > 0 && totalSaved > 0 {
-                    Text("$\(Int(totalSaved)) saved")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.35))
-                }
-
-                Spacer()
-
-                Text("QuitOne")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.black.opacity(0.15))
-                    .padding(.bottom, 32)
-            }
-        }
-    }
-
-    private var darkCard: some View {
-        ZStack {
-            Color(red: 0.08, green: 0.08, blue: 0.08)
-
-            VStack(spacing: 0) {
-                Spacer()
-
-                VStack(spacing: 12) {
-                    Text("DAY")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .tracking(8)
-                        .foregroundStyle(.white.opacity(0.3))
-
-                    Text("\(currentRunDays)")
-                        .font(.system(size: 120, weight: .bold, design: .rounded))
-                        .foregroundStyle(.green)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-
-                    Text("Still on track.")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.6))
-                }
-
-                Spacer().frame(height: 48)
-
-                VStack(spacing: 10) {
-                    if dailySpend > 0 && totalSaved > 0 {
-                        Text("$\(Int(totalSaved)) saved")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(.green.opacity(0.8))
-                    }
-
-                    if bestStreak > 1 {
-                        Text("Best: \(bestStreak) days")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.3))
-                    }
-                }
-
-                Spacer()
-
-                Text("QuitOne")
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.15))
-                    .padding(.bottom, 32)
-            }
-        }
-    }
-
-    private var gradientCard: some View {
         ZStack {
             LinearGradient(
-                colors: [
-                    Color(red: 0.12, green: 0.56, blue: 0.42),
-                    Color(red: 0.08, green: 0.35, blue: 0.28)
-                ],
+                colors: style.backgroundColors,
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
+            Circle()
+                .fill(style.accent.opacity(0.20))
+                .frame(width: 420, height: 420)
+                .blur(radius: 100)
+                .offset(x: 0, y: -120)
+
             VStack(spacing: 0) {
-                Spacer()
+                Spacer(minLength: 48)
 
-                VStack(spacing: 8) {
-                    Text("DAY")
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .tracking(6)
-                        .foregroundStyle(.white.opacity(0.4))
+                HStack {
+                    Text("QuitOne")
+                        .font(.system(size: 24, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.95))
+                    Spacer()
+                }
+                .padding(.horizontal, 56)
 
-                    Text("\(currentRunDays)")
-                        .font(.system(size: 120, weight: .bold, design: .rounded))
+                Spacer(minLength: 40)
+
+                VStack(spacing: 28) {
+                    Text(habitName.uppercased())
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.70))
+                        .tracking(2)
+
+                    VStack(spacing: 6) {
+                        Text("DAY")
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.55))
+                            .tracking(6)
+
+                        Text("\(currentRunDays)")
+                            .font(.system(size: 170, weight: .heavy, design: .rounded))
+                            .foregroundStyle(.white)
+                            .minimumScaleFactor(0.4)
+                            .lineLimit(1)
+                            .shadow(color: style.accent.opacity(0.40), radius: 20, x: 0, y: 8)
+                            .overlay {
+                                Text("\(currentRunDays)")
+                                    .font(.system(size: 170, weight: .heavy, design: .rounded))
+                                    .foregroundStyle(style.accent.opacity(0.18))
+                                    .blur(radius: 10)
+                                    .minimumScaleFactor(0.4)
+                                    .lineLimit(1)
+                            }
+                    }
+
+                    Text(style.statusText)
+                        .font(.system(size: 46, weight: .bold, design: .rounded))
+                        .multilineTextAlignment(.center)
                         .foregroundStyle(.white)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(2)
 
-                    Text("Still on track.")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.7))
-                }
+                    HStack(spacing: 14) {
+                        Image(systemName: metric.icon)
+                            .font(.system(size: 30, weight: .semibold))
+                            .foregroundStyle(style.accent)
 
-                Spacer().frame(height: 40)
+                        Text(metric.title)
+                            .font(.system(size: 34, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.horizontal, 26)
+                    .padding(.vertical, 18)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(.white.opacity(0.08))
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .stroke(.white.opacity(0.10), lineWidth: 1)
+                            )
+                    )
 
-                if dailySpend > 0 && totalSaved > 0 {
-                    Text("$\(Int(totalSaved)) saved")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.8))
+                    RoundedRectangle(cornerRadius: 999)
+                        .fill(
+                            LinearGradient(
+                                colors: [style.accent.opacity(0.0), style.accent, style.accent.opacity(0.0)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(height: 4)
+                        .padding(.horizontal, 80)
 
-                    Spacer().frame(height: 10)
-                }
-
-                if bestStreak > 1 {
-                    Text("Best streak: \(bestStreak) days")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.4))
-                }
-
-                Spacer()
-
-                Text("QuitOne")
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.2))
-                    .padding(.bottom, 32)
-            }
-        }
-    }
-
-    private var cleanCard: some View {
-        ZStack {
-            Color(red: 0.95, green: 0.97, blue: 0.95)
-
-            VStack(spacing: 0) {
-                Spacer()
-
-                Circle()
-                    .fill(Color.green.opacity(0.1))
-                    .frame(width: 160, height: 160)
-                    .overlay {
-                        VStack(spacing: 2) {
-                            Text("\(currentRunDays)")
-                                .font(.system(size: 64, weight: .bold, design: .rounded))
-                                .foregroundStyle(.green)
-                            Text("days")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(.green.opacity(0.6))
+                    if bestStreak > 1 {
+                        HStack(spacing: 8) {
+                            Image(systemName: "flame.fill")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundStyle(style.accent.opacity(0.8))
+                            Text("Best streak: \(bestStreak) days")
+                                .font(.system(size: 24, weight: .medium, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.60))
                         }
+                    } else {
+                        Text("Still building momentum")
+                            .font(.system(size: 24, weight: .medium, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.68))
                     }
-
-                Spacer().frame(height: 24)
-
-                Text("Still on track.")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(.black.opacity(0.6))
-
-                Spacer().frame(height: 36)
-
-                if dailySpend > 0 && totalSaved > 0 {
-                    HStack(spacing: 6) {
-                        Image(systemName: "leaf.fill")
-                            .foregroundStyle(.green)
-                        Text("$\(Int(totalSaved)) saved")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(.black.opacity(0.5))
-                    }
-
-                    Spacer().frame(height: 10)
                 }
-
-                if bestStreak > 1 {
-                    Text("Best streak: \(bestStreak) days")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(.black.opacity(0.35))
-                }
+                .padding(.horizontal, 44)
+                .padding(.vertical, 56)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 40, style: .continuous)
+                        .fill(.white.opacity(0.06))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 40, style: .continuous)
+                                .stroke(.white.opacity(0.08), lineWidth: 1)
+                        )
+                        .shadow(color: .black.opacity(0.35), radius: 30, x: 0, y: 20)
+                )
+                .padding(.horizontal, 40)
 
                 Spacer()
 
-                Text("QuitOne")
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundStyle(.black.opacity(0.15))
-                    .padding(.bottom, 32)
+                Text(style.bottomText)
+                    .font(.system(size: 20, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.50))
+                    .padding(.bottom, 46)
             }
         }
+        .frame(width: 1080, height: 1920)
     }
 }
