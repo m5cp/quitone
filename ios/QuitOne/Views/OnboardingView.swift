@@ -327,7 +327,21 @@ struct OnboardingView: View {
     private var bottomButton: some View {
         VStack(spacing: 0) {
             Divider()
-            Group {
+            HStack(spacing: 12) {
+                if step > 1 {
+                    Button {
+                        withAnimation { step -= 1 }
+                    } label: {
+                        Text("Back")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color(.secondarySystemGroupedBackground))
+                            .clipShape(.rect(cornerRadius: 14))
+                    }
+                }
+
                 if step == 5 {
                     Button {
                         finishOnboarding()
