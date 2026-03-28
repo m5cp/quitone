@@ -10,6 +10,12 @@ nonisolated enum DayStatus: String, Codable, Sendable {
     case slipped
 }
 
+nonisolated struct SpendRateChange: Codable, Identifiable, Sendable {
+    var id: String { dateString }
+    let dateString: String
+    let dailySpend: Double
+}
+
 nonisolated struct DayEntry: Codable, Identifiable, Sendable {
     var id: String { dateString }
     let dateString: String
@@ -34,7 +40,33 @@ nonisolated struct HabitData: Codable, Identifiable, Sendable {
     var startDate: Date
     var goalType: GoalType
     var dailySpend: Double
+    var spendRateHistory: [SpendRateChange]
     var completionHistory: [DayEntry]
+
+    nonisolated enum CodingKeys: String, CodingKey {
+        case id, habitName, startDate, goalType, dailySpend, spendRateHistory, completionHistory
+    }
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        habitName = try container.decode(String.self, forKey: .habitName)
+        startDate = try container.decode(Date.self, forKey: .startDate)
+        goalType = try container.decode(GoalType.self, forKey: .goalType)
+        dailySpend = try container.decode(Double.self, forKey: .dailySpend)
+        spendRateHistory = try container.decodeIfPresent([SpendRateChange].self, forKey: .spendRateHistory) ?? []
+        completionHistory = try container.decode([DayEntry].self, forKey: .completionHistory)
+    }
+
+    init(id: String = UUID().uuidString, habitName: String, startDate: Date, goalType: GoalType, dailySpend: Double, spendRateHistory: [SpendRateChange] = [], completionHistory: [DayEntry] = []) {
+        self.id = id
+        self.habitName = habitName
+        self.startDate = startDate
+        self.goalType = goalType
+        self.dailySpend = dailySpend
+        self.spendRateHistory = spendRateHistory
+        self.completionHistory = completionHistory
+    }
 
     var currentRunDays: Int {
         let calendar = Calendar.current
@@ -69,11 +101,67 @@ nonisolated struct HabitData: Codable, Identifiable, Sendable {
     }
 
     var currentRunSaved: Double {
-        Double(currentRunDays) * dailySpend
+        savedForCompletedDays(completedDays: currentRunCompletedDates)
     }
 
     var totalSaved: Double {
-        Double(totalProgressDays) * dailySpend
+        let completedDates = completionHistory
+            .filter { $0.status == .completed }
+            .compactMap { $0.date }
+        return savedForCompletedDays(completedDays: completedDates)
+    }
+
+    private var currentRunCompletedDates: [Date] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var dates: [Date] = []
+        var checkDate = today
+
+        while true {
+            let dateStr = Self.dateString(from: checkDate)
+            if let entry = completionHistory.first(where: { $0.dateString == dateStr }) {
+                if entry.status == .completed {
+                    dates.append(checkDate)
+                    guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
+                    checkDate = prev
+                } else {
+                    break
+                }
+            } else {
+                if checkDate == today {
+                    guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
+                    checkDate = prev
+                } else {
+                    break
+                }
+            }
+        }
+        return dates
+    }
+
+    func spendRateForDate(_ dateString: String) -> Double {
+        let sortedHistory = spendRateHistory.sorted { $0.dateString < $1.dateString }
+        var rate = sortedHistory.first?.dailySpend ?? dailySpend
+        for change in sortedHistory {
+            if change.dateString <= dateString {
+                rate = change.dailySpend
+            } else {
+                break
+            }
+        }
+        return rate
+    }
+
+    private func savedForCompletedDays(completedDays: [Date]) -> Double {
+        guard !spendRateHistory.isEmpty else {
+            return Double(completedDays.count) * dailySpend
+        }
+        var total: Double = 0
+        for date in completedDays {
+            let dateStr = Self.dateString(from: date)
+            total += spendRateForDate(dateStr)
+        }
+        return total
     }
 
     var hasCheckedInToday: Bool {

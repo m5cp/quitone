@@ -199,7 +199,6 @@ struct ProfileView: View {
                 VStack(spacing: 10) {
                     ForEach([5, 10, 15, 20, 25, 30], id: \.self) { amount in
                         Button {
-                            store.updateDailySpend(Double(amount))
                             showCustomSpendField = false
                             editSpendText = "\(amount)"
                         } label: {

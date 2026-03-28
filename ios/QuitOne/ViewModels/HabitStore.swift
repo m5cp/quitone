@@ -44,6 +44,9 @@ class HabitStore {
 
     func updateDailySpend(_ amount: Double) {
         guard habit != nil else { return }
+        let todayStr = HabitData.dateString(from: Date())
+        habit!.spendRateHistory.removeAll { $0.dateString == todayStr }
+        habit!.spendRateHistory.append(SpendRateChange(dateString: todayStr, dailySpend: amount))
         habit!.dailySpend = amount
         saveData()
     }
@@ -136,7 +139,17 @@ class HabitStore {
 
     func savedAmount(last days: Int) -> Double {
         guard let data = habit else { return 0 }
-        return Double(daysOnTrack(last: days)) * data.dailySpend
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var total: Double = 0
+        for i in 0..<days {
+            guard let date = calendar.date(byAdding: .day, value: -i, to: today) else { continue }
+            let dateStr = HabitData.dateString(from: date)
+            if data.completionHistory.first(where: { $0.dateString == dateStr })?.status == .completed {
+                total += data.spendRateForDate(dateStr)
+            }
+        }
+        return total
     }
 
     func previousPeriodDaysOnTrack(last days: Int) -> Int {
