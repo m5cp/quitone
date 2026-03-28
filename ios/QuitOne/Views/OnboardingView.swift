@@ -255,7 +255,7 @@ struct OnboardingView: View {
                 .buttonStyle(.plain)
 
                 if useCustomStartDate {
-                    DatePicker("Start Date", selection: $startDate, in: ...Date(), displayedComponents: .date)
+                    DatePicker("Start Date", selection: $startDate, in: Date()..., displayedComponents: .date)
                         .datePickerStyle(.graphical)
                         .tint(.green)
                         .padding(12)
