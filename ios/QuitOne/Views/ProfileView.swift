@@ -82,22 +82,23 @@ struct ProfileView: View {
             }
             .tint(.primary)
 
-            HStack {
-                Label("Hide Habit Name", systemImage: store.habitNameHidden ? "eye.slash.fill" : "eye.fill")
-                    .foregroundStyle(.purple)
-                Spacer()
-                Button {
-                    withAnimation(.snappy(duration: 0.25)) {
-                        store.habitNameHidden.toggle()
-                    }
-                } label: {
-                    Image(systemName: store.habitNameHidden ? "eye.slash.fill" : "eye.fill")
+            Button {
+                withAnimation(.snappy(duration: 0.25)) {
+                    store.habitNameHidden.toggle()
+                }
+            } label: {
+                HStack {
+                    Label(store.habitNameHidden ? "Unhide" : "Hide", systemImage: store.habitNameHidden ? "eye.slash.fill" : "eye.fill")
+                        .foregroundStyle(.purple)
+                        .contentTransition(.symbolEffect(.replace))
+                    Spacer()
+                    Image(systemName: store.habitNameHidden ? "eye.slash" : "eye")
                         .font(.body)
-                        .foregroundStyle(store.habitNameHidden ? .secondary : .primary)
+                        .foregroundStyle(.secondary)
                         .contentTransition(.symbolEffect(.replace))
                 }
-                .buttonStyle(.plain)
             }
+            .buttonStyle(.plain)
 
             Button {
                 editSpendText = "\(Int(data.dailySpend))"
