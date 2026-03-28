@@ -220,6 +220,16 @@ class HabitStore {
         return lines.joined(separator: "\n")
     }
 
+    var habitNameHidden: Bool {
+        get { UserDefaults.standard.bool(forKey: "habitNameHidden") }
+        set { UserDefaults.standard.set(newValue, forKey: "habitNameHidden") }
+    }
+
+    var displayHabitName: String {
+        guard let data = habit else { return "Your Habit" }
+        return habitNameHidden ? "•••••" : data.habitName
+    }
+
     var notificationsEnabled: Bool {
         get { UserDefaults.standard.bool(forKey: "notificationsEnabled") }
         set {

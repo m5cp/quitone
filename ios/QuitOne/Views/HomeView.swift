@@ -141,7 +141,7 @@ struct HomeView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(data?.habitName ?? "Your Habit")
+            Text(store.displayHabitName)
                 .font(.system(size: 28, weight: .bold))
 
             Text(statusMessage)
