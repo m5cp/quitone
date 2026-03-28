@@ -15,7 +15,7 @@ struct ProgressSharePremiumCard: View {
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundStyle(.primary)
 
-                        Text("Create a beautiful card from your progress")
+                        Text("Create a social media ready progress card")
                             .font(.system(size: 15, weight: .medium, design: .rounded))
                             .foregroundStyle(.secondary)
                     }
