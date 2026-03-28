@@ -54,6 +54,12 @@ class HabitStore {
         saveData()
     }
 
+    func updateHabitName(_ name: String) {
+        guard habit != nil else { return }
+        habit!.habitName = name
+        saveData()
+    }
+
     func updateGoal(_ goal: GoalType) {
         guard habit != nil else { return }
         habit!.goalType = goal

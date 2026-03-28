@@ -5,6 +5,9 @@ struct ProfileView: View {
     @State private var showResetAlert: Bool = false
     @State private var showEditSpend: Bool = false
     @State private var showEditDate: Bool = false
+    @State private var showEditHabit: Bool = false
+    @State private var selectedHabitOption: HabitOption?
+    @State private var customHabitName: String = ""
     @State private var showPaywall: Bool = false
     @State private var editStartDate: Date = Date()
     @State private var editSpendText: String = ""
@@ -35,6 +38,9 @@ struct ProfileView: View {
             .sheet(isPresented: $showEditDate) {
                 editDateSheet
             }
+            .sheet(isPresented: $showEditHabit) {
+                editHabitSheet
+            }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
             }
@@ -43,13 +49,24 @@ struct ProfileView: View {
 
     private func habitSection(data: HabitData) -> some View {
         Section {
-            HStack {
-                Label("Habit", systemImage: "leaf.fill")
-                    .foregroundStyle(.green)
-                Spacer()
-                Text(data.habitName)
-                    .foregroundStyle(.secondary)
+            Button {
+                let matchedOption = allHabitOptions.first { $0.name == data.habitName }
+                selectedHabitOption = matchedOption
+                customHabitName = matchedOption == nil ? data.habitName : ""
+                showEditHabit = true
+            } label: {
+                HStack {
+                    Label("Habit", systemImage: "leaf.fill")
+                        .foregroundStyle(.green)
+                    Spacer()
+                    Text(data.habitName)
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
             }
+            .tint(.primary)
 
             Button {
                 editSpendText = "\(Int(data.dailySpend))"
@@ -250,6 +267,113 @@ struct ProfileView: View {
                         showEditSpend = false
                     }
                     .disabled(showCustomSpendField && Double(editSpendText) == nil)
+                }
+            }
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private var isCustomHabit: Bool {
+        selectedHabitOption == nil && !customHabitName.isEmpty
+    }
+
+    private var editHabitSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    Text("Update Your Habit")
+                        .font(.title2.bold())
+
+                    VStack(spacing: 10) {
+                        ForEach(allHabitOptions) { option in
+                            Button {
+                                withAnimation(.snappy) {
+                                    selectedHabitOption = option
+                                    customHabitName = ""
+                                }
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: option.icon)
+                                        .font(.body)
+                                        .foregroundStyle(selectedHabitOption?.id == option.id ? .white : .green)
+                                        .frame(width: 28)
+                                    Text(option.name)
+                                        .font(.body.weight(.medium))
+                                        .foregroundStyle(selectedHabitOption?.id == option.id ? .white : .primary)
+                                    Spacer()
+                                    if selectedHabitOption?.id == option.id {
+                                        Image(systemName: "checkmark")
+                                            .font(.subheadline.bold())
+                                            .foregroundStyle(.white)
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 16)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(selectedHabitOption?.id == option.id ? Color.green : Color(.secondarySystemGroupedBackground))
+                                .clipShape(.rect(cornerRadius: 12))
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        Button {
+                            withAnimation(.snappy) {
+                                selectedHabitOption = nil
+                                if customHabitName.isEmpty {
+                                    customHabitName = ""
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.body)
+                                    .foregroundStyle(isCustomHabit ? .white : .green)
+                                    .frame(width: 28)
+                                Text("Custom Habit")
+                                    .font(.body.weight(.medium))
+                                    .foregroundStyle(isCustomHabit ? .white : .primary)
+                                Spacer()
+                                if isCustomHabit {
+                                    Image(systemName: "checkmark")
+                                        .font(.subheadline.bold())
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 16)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(isCustomHabit ? Color.green : Color(.secondarySystemGroupedBackground))
+                            .clipShape(.rect(cornerRadius: 12))
+                        }
+                        .buttonStyle(.plain)
+
+                        if selectedHabitOption == nil {
+                            TextField("Name your habit", text: $customHabitName)
+                                .font(.body)
+                                .padding(16)
+                                .background(Color(.secondarySystemGroupedBackground))
+                                .clipShape(.rect(cornerRadius: 12))
+                        }
+                    }
+                }
+                .padding(24)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { showEditHabit = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        let newName = selectedHabitOption?.name ?? customHabitName
+                        if !newName.isEmpty {
+                            store.updateHabitName(newName)
+                        }
+                        showEditHabit = false
+                    }
+                    .disabled(selectedHabitOption == nil && customHabitName.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
         }
