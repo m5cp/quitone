@@ -4,7 +4,7 @@ struct HabitProgressView: View {
     let store: HabitStore
     @State private var viewMode: CalendarViewMode = .week
     @State private var showPaywall: Bool = false
-    @State private var showExportSheet: Bool = false
+    @State private var showShareProgress: Bool = false
 
     private var data: HabitData? { store.habit }
 
@@ -20,7 +20,7 @@ struct HabitProgressView: View {
                         milestoneCard(data: data)
                         savingsCard(data: data)
                         insightsSection(data: data)
-                        exportSection
+                        shareProgressCard(data: data)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
@@ -34,11 +34,8 @@ struct HabitProgressView: View {
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
             }
-            .sheet(isPresented: $showExportSheet) {
-                if store.isPremium {
-                    let text = store.exportProgressText()
-                    ActivityViewRepresentable(activityItems: [text])
-                }
+            .sheet(isPresented: $showShareProgress) {
+                ShareProgressView(store: store)
             }
         }
     }
@@ -522,41 +519,18 @@ struct HabitProgressView: View {
         .buttonStyle(.plain)
     }
 
-    private var exportSection: some View {
-        Button {
+    private func shareProgressCard(data: HabitData) -> some View {
+        ProgressSharePremiumCard(
+            day: data.currentRunDays,
+            moneySavedText: data.dailySpend > 0 ? "$\(Int(data.totalSaved)) saved" : "",
+            isPremiumUnlocked: store.isPremium
+        ) {
             if store.isPremium {
-                showExportSheet = true
+                showShareProgress = true
             } else {
                 showPaywall = true
             }
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(store.isPremium ? .blue : .secondary)
-                Text("Export Progress")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(store.isPremium ? .primary : .secondary)
-                Spacer()
-                if !store.isPremium {
-                    HStack(spacing: 4) {
-                        Image(systemName: "lock.fill")
-                            .font(.caption2)
-                        Text("Pro")
-                            .font(.caption.weight(.semibold))
-                    }
-                    .foregroundStyle(.orange)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                }
-            }
-            .padding(16)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(.rect(cornerRadius: 14))
         }
-        .buttonStyle(.plain)
     }
 
     private func insightRow(icon: String, title: String, value: String, color: Color) -> some View {
