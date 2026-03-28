@@ -1,11 +1,63 @@
 import SwiftUI
 
+nonisolated enum CheckInButtonStyle {
+    case onTrack
+    case slip
+}
+
+struct CheckInButton: View {
+    let label: String
+    let style: CheckInButtonStyle
+    let action: () -> Void
+
+    @State private var isPressed: Bool = false
+
+    var body: some View {
+        Button {
+            action()
+        } label: {
+            Group {
+                switch style {
+                case .onTrack:
+                    Text(label)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background(Color.green)
+                        .clipShape(.rect(cornerRadius: 14))
+                case .slip:
+                    Text(label)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color(.tertiarySystemGroupedBackground))
+                        .clipShape(.rect(cornerRadius: 12))
+                }
+            }
+        }
+        .buttonStyle(CheckInPressStyle())
+    }
+}
+
+struct CheckInPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.65), value: configuration.isPressed)
+    }
+}
+
 struct HomeView: View {
     let store: HabitStore
     @State private var checkInBounce: Int = 0
     @State private var showSlipConfirm: Bool = false
     @State private var insightIndex: Int = 0
     @State private var showShareCard: Bool = false
+    @State private var showCheckInConfirmation: Bool = false
+    @State private var showSlipConfirmation: Bool = false
+    @State private var slipHapticTrigger: Int = 0
 
     private var data: HabitData? { store.habit }
 
@@ -25,9 +77,19 @@ struct HomeView: View {
             }
             .background(Color(.systemBackground))
             .sensoryFeedback(.success, trigger: checkInBounce)
+            .sensoryFeedback(.selection, trigger: slipHapticTrigger)
             .confirmationDialog("Had a slip?", isPresented: $showSlipConfirm, titleVisibility: .visible) {
                 Button("Yes, but I'm keeping going") {
-                    store.slipToday()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        store.slipToday()
+                        showSlipConfirmation = true
+                    }
+                    slipHapticTrigger += 1
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            showSlipConfirmation = false
+                        }
+                    }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
@@ -129,51 +191,56 @@ struct HomeView: View {
                     HStack(spacing: 10) {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(.green)
-                        Text("You're on track today")
+                            .symbolEffect(.bounce, value: showCheckInConfirmation)
+                        Text(showCheckInConfirmation ? "Nice work" : "You're on track today")
                             .font(.headline)
                             .foregroundStyle(.green)
+                            .contentTransition(.interpolate)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
-                    .background(Color.green.opacity(0.12))
+                    .background(
+                        Color.green.opacity(showCheckInConfirmation ? 0.18 : 0.12)
+                    )
                     .clipShape(.rect(cornerRadius: 14))
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.95).combined(with: .opacity),
+                        removal: .opacity
+                    ))
                 } else {
                     HStack(spacing: 10) {
                         Image(systemName: "arrow.clockwise.circle.fill")
                             .foregroundStyle(.orange)
-                        Text("Tomorrow is a fresh start")
+                        Text(showSlipConfirmation ? "Tomorrow is yours" : "Tomorrow is a fresh start")
                             .font(.headline)
                             .foregroundStyle(.orange)
+                            .contentTransition(.interpolate)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
                     .background(Color.orange.opacity(0.12))
                     .clipShape(.rect(cornerRadius: 14))
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.95).combined(with: .opacity),
+                        removal: .opacity
+                    ))
                 }
             } else {
-                Button {
-                    store.checkInToday()
+                CheckInButton(label: "I stayed on track today", style: .onTrack) {
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
+                        store.checkInToday()
+                        showCheckInConfirmation = true
+                    }
                     checkInBounce += 1
-                } label: {
-                    Text("I stayed on track today")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-                        .background(Color.green)
-                        .clipShape(.rect(cornerRadius: 14))
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            showCheckInConfirmation = false
+                        }
+                    }
                 }
 
-                Button {
+                CheckInButton(label: "I had a slip — keep going", style: .slip) {
                     showSlipConfirm = true
-                } label: {
-                    Text("I had a slip — keep going")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color(.tertiarySystemGroupedBackground))
-                        .clipShape(.rect(cornerRadius: 12))
                 }
             }
         }
