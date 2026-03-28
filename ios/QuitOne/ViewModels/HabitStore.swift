@@ -226,15 +226,7 @@ class HabitStore {
         let center = UNUserNotificationCenter.current()
         center.removeAllPendingNotificationRequests()
 
-        let messages = [
-            "Your progress is waiting for you.",
-            "Stay on track today.",
-            "You're building momentum.",
-            "Quick check-in available.",
-            "One tap to keep your streak going.",
-            "You're doing great — check in today.",
-            "A moment for yourself today.",
-        ]
+        let messages = GentleReminders.all
 
         let content = UNMutableNotificationContent()
         content.title = "QuitOne"
