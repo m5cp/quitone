@@ -5,6 +5,7 @@ struct HomeView: View {
     @State private var checkInBounce: Int = 0
     @State private var showSlipConfirm: Bool = false
     @State private var insightIndex: Int = 0
+    @State private var showShareCard: Bool = false
 
     private var data: HabitData? { store.habit }
 
@@ -15,6 +16,7 @@ struct HomeView: View {
                     headerSection
                     heroCard
                     actionButtons
+                    shareButton
                     insightCard
                 }
                 .padding(.horizontal, 20)
@@ -33,6 +35,9 @@ struct HomeView: View {
             }
             .onAppear {
                 insightIndex = Int.random(in: 0..<insightMessages.count)
+            }
+            .sheet(isPresented: $showShareCard) {
+                ShareProgressView(store: store)
             }
         }
     }
@@ -171,6 +176,24 @@ struct HomeView: View {
                         .clipShape(.rect(cornerRadius: 12))
                 }
             }
+        }
+    }
+
+    private var shareButton: some View {
+        Button {
+            showShareCard = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.body.weight(.semibold))
+                Text("Share Progress")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .foregroundStyle(.green)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Color.green.opacity(0.1))
+            .clipShape(.rect(cornerRadius: 12))
         }
     }
 
