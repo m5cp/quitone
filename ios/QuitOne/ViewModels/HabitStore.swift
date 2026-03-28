@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import WidgetKit
 
 @Observable
 @MainActor
@@ -261,10 +262,31 @@ class HabitStore {
         center.add(request)
     }
 
+    func syncWidget() {
+        guard let data = habit else { return }
+        let status: String
+        if data.todayStatus == .slipped {
+            status = "Fresh start tomorrow"
+        } else if data.hasCheckedInToday {
+            status = "Still on track"
+        } else if data.currentRunDays > 0 {
+            status = "Check in today"
+        } else {
+            status = "Start today"
+        }
+        WidgetUpdater.update(
+            habitName: data.habitName,
+            currentRunDays: data.currentRunDays,
+            moneySaved: data.totalSaved,
+            statusText: status
+        )
+    }
+
     private func saveData() {
         if let encoded = try? JSONEncoder().encode(habit) {
             UserDefaults.standard.set(encoded, forKey: habitKey)
         }
+        syncWidget()
     }
 
     private func loadData() {

@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		XXDB78920C96652C3CF528XX /* QuitOneWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = XX294E02199D3A74093345XX /* QuitOneWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		105FC58A2E9EAD3200EA8BCF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,13 +25,45 @@
 			remoteGlobalIDString = 105FC5792E9EAD3100EA8BCF;
 			remoteInfo = QuitOne;
 		};
+		XX3E94E350FBBCC3FF9FE0XX /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 105FC5722E9EAD3100EA8BCF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = XX95A2583B91C71DD70364XX;
+			remoteInfo = QuitOneWidget;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		XXDE2E08ACDF6F5FE26085XX /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				XXDB78920C96652C3CF528XX /* QuitOneWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		105FC57A2E9EAD3100EA8BCF /* QuitOne.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuitOne.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		105FC5892E9EAD3200EA8BCF /* QuitOneTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QuitOneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		105FC5932E9EAD3200EA8BCF /* QuitOneUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QuitOneUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		XX294E02199D3A74093345XX /* QuitOneWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = QuitOneWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		XX66551378773C3636594DXX /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = XX95A2583B91C71DD70364XX /* QuitOneWidget */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		105FC57C2E9EAD3100EA8BCF /* QuitOne */ = {
@@ -44,6 +80,14 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = QuitOneUITests;
 			sourceTree = "<group>";
+		};
+		XXE65628D20C4D675600C9XX /* QuitOneWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = QuitOneWidget;
+			sourceTree = "<group>";
+			exceptions = (
+				XX66551378773C3636594DXX /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -69,6 +113,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		XX75B8358D2242CEB782C5XX /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -79,6 +130,7 @@
 				105FC58C2E9EAD3200EA8BCF /* QuitOneTests */,
 				105FC5962E9EAD3200EA8BCF /* QuitOneUITests */,
 				105FC57B2E9EAD3100EA8BCF /* Products */,
+				XXE65628D20C4D675600C9XX /* QuitOneWidget */,
 			);
 			sourceTree = "<group>";
 		};
@@ -88,6 +140,7 @@
 				105FC57A2E9EAD3100EA8BCF /* QuitOne.app */,
 				105FC5892E9EAD3200EA8BCF /* QuitOneTests.xctest */,
 				105FC5932E9EAD3200EA8BCF /* QuitOneUITests.xctest */,
+				XX294E02199D3A74093345XX /* QuitOneWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -102,10 +155,12 @@
 				105FC5762E9EAD3100EA8BCF /* Sources */,
 				105FC5772E9EAD3100EA8BCF /* Frameworks */,
 				105FC5782E9EAD3100EA8BCF /* Resources */,
+				XXDE2E08ACDF6F5FE26085XX /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				XX0199E6B2E0B50E38236EXX /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				105FC57C2E9EAD3100EA8BCF /* QuitOne */,
@@ -163,6 +218,26 @@
 			productReference = 105FC5932E9EAD3200EA8BCF /* QuitOneUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		XX95A2583B91C71DD70364XX /* QuitOneWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = XX58FD0F42E2B6375E3878XX /* Build configuration list for PBXNativeTarget "QuitOneWidget" */;
+			buildPhases = (
+				XXE0FD6AFA7551401BFCEBXX /* Sources */,
+				XX75B8358D2242CEB782C5XX /* Frameworks */,
+				XX8DEE49FEB104205DDA8DXX /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = QuitOneWidget;
+			productName = QuitOneWidget;
+			productReference = XX294E02199D3A74093345XX /* QuitOneWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+			fileSystemSynchronizedGroups = (
+				XXE65628D20C4D675600C9XX /* QuitOneWidget */,
+			);
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -203,6 +278,7 @@
 				105FC5792E9EAD3100EA8BCF /* QuitOne */,
 				105FC5882E9EAD3200EA8BCF /* QuitOneTests */,
 				105FC5922E9EAD3200EA8BCF /* QuitOneUITests */,
+				XX95A2583B91C71DD70364XX /* QuitOneWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -223,6 +299,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		105FC5912E9EAD3200EA8BCF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		XX8DEE49FEB104205DDA8DXX /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -253,6 +336,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		XXE0FD6AFA7551401BFCEBXX /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -265,6 +355,11 @@
 			isa = PBXTargetDependency;
 			target = 105FC5792E9EAD3100EA8BCF /* QuitOne */;
 			targetProxy = 105FC5942E9EAD3200EA8BCF /* PBXContainerItemProxy */;
+		};
+		XX0199E6B2E0B50E38236EXX /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = XX95A2583B91C71DD70364XX /* QuitOneWidget */;
+			targetProxy = XX3E94E350FBBCC3FF9FE0XX /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -395,6 +490,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = QuitOne/QuitOne.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -428,6 +524,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = QuitOne/QuitOne.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -466,7 +563,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.s72ki6xrr9qwpr76nce51.tests";
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.s72ki6xrr9qwpr76nce51.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -488,7 +585,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.s72ki6xrr9qwpr76nce51.tests";
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.s72ki6xrr9qwpr76nce51.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -508,7 +605,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.s72ki6xrr9qwpr76nce51.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.s72ki6xrr9qwpr76nce51.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -528,7 +625,7 @@
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "app.rork.s72ki6xrr9qwpr76nce51.uitests";
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.s72ki6xrr9qwpr76nce51.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -537,6 +634,52 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = QuitOne;
+			};
+			name = Release;
+		};
+		XX21E3B548FEDC78B45FE1XX /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = QuitOneWidget/QuitOneWidget.entitlements;
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.s72ki6xrr9qwpr76nce51.quitonewidget;
+				PRODUCT_NAME = QuitOneWidget;
+				SWIFT_VERSION = 5.0;
+				SDKROOT = iphoneos;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = QuitOneWidget/Info.plist;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				MARKETING_VERSION = 1.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_NAME)";
+			};
+			name = Debug;
+		};
+		XXC5ABF60511514C2F09D1XX /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = QuitOneWidget/QuitOneWidget.entitlements;
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.s72ki6xrr9qwpr76nce51.quitonewidget;
+				PRODUCT_NAME = QuitOneWidget;
+				SWIFT_VERSION = 5.0;
+				SDKROOT = iphoneos;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = QuitOneWidget/Info.plist;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				MARKETING_VERSION = 1.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_NAME)";
 			};
 			name = Release;
 		};
@@ -575,6 +718,15 @@
 			buildConfigurations = (
 				105FC5A42E9EAD3200EA8BCF /* Debug */,
 				105FC5A52E9EAD3200EA8BCF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		XX58FD0F42E2B6375E3878XX /* Build configuration list for PBXNativeTarget "QuitOneWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				XX21E3B548FEDC78B45FE1XX /* Debug */,
+				XXC5ABF60511514C2F09D1XX /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

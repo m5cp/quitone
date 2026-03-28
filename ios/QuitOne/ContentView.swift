@@ -18,6 +18,9 @@ struct ContentView: View {
                 }
             }
             .tint(.green)
+            .onAppear {
+                store.syncWidget()
+            }
         } else {
             OnboardingView(store: store)
         }
