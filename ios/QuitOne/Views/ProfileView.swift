@@ -88,7 +88,7 @@ struct ProfileView: View {
                 }
             } label: {
                 HStack {
-                    Label(store.habitNameHidden ? "Unhide" : "Hide", systemImage: store.habitNameHidden ? "eye.slash.fill" : "eye.fill")
+                    Label(store.habitNameHidden ? "Hide" : "Hide", systemImage: store.habitNameHidden ? "eye.slash.fill" : "eye.fill")
                         .foregroundStyle(.purple)
                         .contentTransition(.symbolEffect(.replace))
                     Spacer()
