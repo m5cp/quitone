@@ -279,9 +279,9 @@ struct HomeView: View {
     private var savingsInsightCard: some View {
         Group {
             if let data, data.dailySpend > 0, data.totalSaved > 1 {
-                let insight = savingsEquivalent(for: data.totalSaved)
+                let insight = progressInsight(saved: data.totalSaved, dailySpend: data.dailySpend, days: data.currentRunDays)
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("What your savings could cover")
+                    Text("Your Progress")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
@@ -293,13 +293,9 @@ struct HomeView: View {
                             .foregroundStyle(.green)
                             .frame(width: 36)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(insight.text)
-                                .font(.subheadline.weight(.semibold))
-                            Text("$\(Int(data.totalSaved)) saved so far")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                        Text(insight.text)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.primary)
 
                         Spacer()
                     }
@@ -311,31 +307,18 @@ struct HomeView: View {
         }
     }
 
-    private func savingsEquivalent(for amount: Double) -> (text: String, icon: String) {
-        let equivalents: [(threshold: Double, text: String, icon: String)] = [
-            (5, "A fancy coffee", "cup.and.saucer.fill"),
-            (12, "A movie ticket", "film.fill"),
-            (15, "Lunch for the day", "fork.knife"),
-            (25, "A streaming subscription", "play.tv.fill"),
-            (40, "A tank of gas", "fuelpump.fill"),
-            (50, "A nice dinner out", "fork.knife"),
-            (75, "A pair of shoes", "shoeprints.fill"),
-            (100, "A weekend getaway fund", "airplane"),
-            (150, "New headphones", "headphones"),
-            (200, "A short trip", "car.fill"),
-            (300, "A new gadget", "iphone"),
-            (500, "A vacation starter", "sun.max.fill"),
-            (750, "A month's groceries", "cart.fill"),
-            (1000, "A major upgrade", "star.fill"),
+    private func progressInsight(saved: Double, dailySpend: Double, days: Int) -> (text: String, icon: String) {
+        let yearProjection = dailySpend * 365
+        let insights: [(text: String, icon: String)] = [
+            ("At this pace, that's over $\(Int(yearProjection)) kept in a year.", "chart.line.uptrend.xyaxis"),
+            ("You kept $\(Int(saved)) in your control.", "hand.raised.fill"),
+            ("This is how habits turn into real change.", "bolt.fill"),
+            ("\(days) days of choosing differently.", "arrow.up.right"),
+            ("Every day you don't spend is a day you invest in yourself.", "sparkles"),
+            ("$\(Int(saved)) redirected. That's power.", "powerplug.fill"),
         ]
-
-        var best = equivalents[0]
-        for eq in equivalents {
-            if amount >= eq.threshold {
-                best = eq
-            }
-        }
-        return (text: best.text, icon: best.icon)
+        let index = (Calendar.current.component(.day, from: Date()) + days) % insights.count
+        return insights[index]
     }
 
     private var shareButton: some View {

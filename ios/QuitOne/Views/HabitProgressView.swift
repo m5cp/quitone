@@ -1,10 +1,14 @@
 import SwiftUI
+import Combine
 
 struct HabitProgressView: View {
     let store: HabitStore
     @State private var viewMode: CalendarViewMode = .week
     @State private var showPaywall: Bool = false
     @State private var showShareProgress: Bool = false
+    @State private var now: Date = Date()
+
+    private let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     private var data: HabitData? { store.habit }
 
@@ -13,6 +17,7 @@ struct HabitProgressView: View {
             ScrollView {
                 if let data {
                     VStack(spacing: 24) {
+                        liveSummaryCard(data: data)
                         statsGrid(data: data)
                         calendarSection(data: data)
                         weeklySummaryCard(data: data)
@@ -31,6 +36,9 @@ struct HabitProgressView: View {
             }
             .background(Color(.systemBackground))
             .navigationTitle("Progress")
+            .onReceive(timer) { _ in
+                now = Date()
+            }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
             }
@@ -38,6 +46,55 @@ struct HabitProgressView: View {
                 ShareProgressView(store: store)
             }
         }
+    }
+
+    private func liveSummaryCard(data: HabitData) -> some View {
+        let interval = now.timeIntervalSince(data.startDate)
+        let totalHours = max(0, Int(interval / 3600))
+        let days = totalHours / 24
+        let hours = totalHours % 24
+        let elapsedStr: String = {
+            if days == 0 {
+                return "\(hours) hour\(hours == 1 ? "" : "s")"
+            }
+            return "\(days) day\(days == 1 ? "" : "s"), \(hours) hour\(hours == 1 ? "" : "s")"
+        }()
+
+        return VStack(spacing: 14) {
+            HStack(spacing: 10) {
+                Image(systemName: "clock.fill")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.green)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Time on this journey")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                    Text(elapsedStr)
+                        .font(.title3.weight(.bold))
+                }
+                Spacer()
+            }
+
+            if data.dailySpend > 0 {
+                HStack(spacing: 10) {
+                    Image(systemName: "dollarsign.circle.fill")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.green)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Total money saved")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                        Text("$\(Int(data.totalSaved))")
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(.green)
+                    }
+                    Spacer()
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(.rect(cornerRadius: 14))
     }
 
     private func statsGrid(data: HabitData) -> some View {
