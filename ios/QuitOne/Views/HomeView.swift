@@ -74,6 +74,7 @@ struct HomeView: View {
     @State private var showSlipConfirmation: Bool = false
     @State private var slipHapticTrigger: Int = 0
     @State private var now: Date = Date()
+    @State private var visibilityHaptic: Int = 0
     @Environment(\.colorScheme) private var colorScheme
 
     private let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
@@ -140,15 +141,39 @@ struct HomeView: View {
     }
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(store.displayHabitName)
-                .font(.system(size: 28, weight: .bold))
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(store.displayHabitName)
+                    .font(.system(size: 28, weight: .bold))
+                    .contentTransition(.interpolate)
 
-            Text(statusMessage)
-                .font(.body)
-                .foregroundStyle(.secondary)
+                Text(statusMessage)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button {
+                withAnimation(.snappy(duration: 0.25)) {
+                    store.habitNameHidden.toggle()
+                }
+                visibilityHaptic += 1
+            } label: {
+                Image(systemName: store.habitNameHidden ? "eye.slash" : "eye")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .contentTransition(.symbolEffect(.replace))
+                    .frame(width: 36, height: 36)
+                    .background(
+                        Circle()
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color(.tertiarySystemGroupedBackground))
+                    )
+            }
+            .accessibilityLabel(store.habitNameHidden ? "Show habit name" : "Hide habit name")
+            .accessibilityHint("Toggles whether the habit name is visible")
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .sensoryFeedback(.selection, trigger: visibilityHaptic)
     }
 
     private var statusMessage: String {

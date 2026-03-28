@@ -83,24 +83,6 @@ struct ProfileView: View {
             .tint(.primary)
 
             Button {
-                withAnimation(.snappy(duration: 0.25)) {
-                    store.habitNameHidden.toggle()
-                }
-            } label: {
-                HStack {
-                    Label(store.habitNameHidden ? "Hide" : "Hide", systemImage: store.habitNameHidden ? "eye.slash.fill" : "eye.fill")
-                        .foregroundStyle(.purple)
-                        .contentTransition(.symbolEffect(.replace))
-                    Spacer()
-                    Image(systemName: store.habitNameHidden ? "eye.slash" : "eye")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .contentTransition(.symbolEffect(.replace))
-                }
-            }
-            .buttonStyle(.plain)
-
-            Button {
                 editSpendText = "\(Int(data.dailySpend))"
                 showCustomSpendField = false
                 showEditSpend = true
