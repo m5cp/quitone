@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     let store: HabitStore
+    let storeVM: StoreViewModel
     @State private var showResetAlert: Bool = false
     @State private var showEditSpend: Bool = false
     @State private var showEditDate: Bool = false
@@ -46,7 +47,7 @@ struct ProfileView: View {
                 editHabitSheet
             }
             .sheet(isPresented: $showPaywall) {
-                PaywallView()
+                PaywallView(storeVM: storeVM)
             }
         }
     }

@@ -1,6 +1,7 @@
 import SwiftUI
 import UserNotifications
 import WidgetKit
+import RevenueCat
 
 @Observable
 @MainActor

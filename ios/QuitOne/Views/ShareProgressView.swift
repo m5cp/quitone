@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 struct ShareProgressView: View {
     let store: HabitStore
+    var storeVM: StoreViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var selectedStyle: ShareCardStyle = .bold
     @State private var showPaywall: Bool = false
@@ -43,7 +44,7 @@ struct ShareProgressView: View {
                 }
             }
             .sheet(isPresented: $showPaywall) {
-                PaywallView()
+                PaywallView(storeVM: storeVM)
             }
             .onChange(of: selectedStyle) { _, _ in
                 renderCard()

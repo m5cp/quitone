@@ -1,4 +1,5 @@
 import SwiftUI
+import RevenueCat
 
 nonisolated enum QuitOneTab: Int, CaseIterable, Sendable {
     case home = 0
@@ -24,6 +25,7 @@ nonisolated enum QuitOneTab: Int, CaseIterable, Sendable {
 
 struct ContentView: View {
     @State private var store = HabitStore()
+    @State private var storeVM = StoreViewModel()
     @State private var selectedTab: QuitOneTab = .home
     @AppStorage("appearanceMode") private var appearanceMode: Int = 0
 
@@ -38,21 +40,21 @@ struct ContentView: View {
     var body: some View {
         if store.hasCompletedOnboarding {
             TabView(selection: $selectedTab) {
-                HomeView(store: store)
+                HomeView(store: store, storeVM: storeVM)
                     .tag(QuitOneTab.home)
                     .tabItem {
                         Image(systemName: QuitOneTab.home.icon)
                         Text(QuitOneTab.home.title)
                     }
 
-                HabitProgressView(store: store)
+                HabitProgressView(store: store, storeVM: storeVM)
                     .tag(QuitOneTab.progress)
                     .tabItem {
                         Image(systemName: QuitOneTab.progress.icon)
                         Text(QuitOneTab.progress.title)
                     }
 
-                ProfileView(store: store)
+                ProfileView(store: store, storeVM: storeVM)
                     .tag(QuitOneTab.profile)
                     .tabItem {
                         Image(systemName: QuitOneTab.profile.icon)
@@ -62,6 +64,9 @@ struct ContentView: View {
             .tint(.green)
             .onAppear {
                 store.syncWidget()
+            }
+            .onChange(of: storeVM.isPremium) { _, newValue in
+                store.isPremium = newValue
             }
             .preferredColorScheme(resolvedColorScheme)
         } else {

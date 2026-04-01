@@ -66,6 +66,7 @@ struct CheckInPressStyle: ButtonStyle {
 
 struct HomeView: View {
     let store: HabitStore
+    let storeVM: StoreViewModel
     @State private var checkInBounce: Int = 0
     @State private var showSlipConfirm: Bool = false
     @State private var insightIndex: Int = 0
@@ -124,7 +125,7 @@ struct HomeView: View {
                 now = Date()
             }
             .sheet(isPresented: $showShareCard) {
-                ShareProgressView(store: store)
+                ShareProgressView(store: store, storeVM: storeVM)
             }
         }
     }

@@ -8,6 +8,7 @@ nonisolated enum CalendarViewMode: String, CaseIterable, Sendable {
 
 struct HabitProgressView: View {
     let store: HabitStore
+    let storeVM: StoreViewModel
     @State private var viewMode: CalendarViewMode = .week
     @State private var showPaywall: Bool = false
     @State private var showShareProgress: Bool = false
@@ -60,10 +61,10 @@ struct HabitProgressView: View {
                 now = Date()
             }
             .sheet(isPresented: $showPaywall) {
-                PaywallView()
+                PaywallView(storeVM: storeVM)
             }
             .sheet(isPresented: $showShareProgress) {
-                ShareProgressView(store: store)
+                ShareProgressView(store: store, storeVM: storeVM)
             }
         }
     }
