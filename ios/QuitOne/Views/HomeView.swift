@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import AppIntents
 
 nonisolated enum CheckInButtonStyle {
     case onTrack
@@ -67,6 +68,7 @@ struct CheckInPressStyle: ButtonStyle {
 struct HomeView: View {
     let store: HabitStore
     let storeVM: StoreViewModel
+    let widgetCheckInTrigger: Int
     @State private var checkInBounce: Int = 0
     @State private var showSlipConfirm: Bool = false
     @State private var insightIndex: Int = 0
@@ -76,7 +78,9 @@ struct HomeView: View {
     @State private var slipHapticTrigger: Int = 0
     @State private var now: Date = Date()
     @State private var visibilityHaptic: Int = 0
+    @State private var showSiriTip: Bool = true
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
@@ -89,6 +93,7 @@ struct HomeView: View {
                     headerSection
                     heroCard
                     actionButtons
+                    siriTipSection
                     savingsInsightCard
                     shareButton
                     insightCard
@@ -123,6 +128,17 @@ struct HomeView: View {
             }
             .onReceive(timer) { _ in
                 now = Date()
+            }
+            .onChange(of: widgetCheckInTrigger) { _, _ in
+                withAnimation(reduceMotion ? .none : .spring(response: 0.45, dampingFraction: 0.7)) {
+                    showCheckInConfirmation = true
+                }
+                checkInBounce += 1
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                    withAnimation(reduceMotion ? .none : .easeOut(duration: 0.3)) {
+                        showCheckInConfirmation = false
+                    }
+                }
             }
             .sheet(isPresented: $showShareCard) {
                 ShareProgressView(store: store, storeVM: storeVM)
@@ -444,11 +460,20 @@ struct HomeView: View {
         }
     }
 
+    private var siriTipSection: some View {
+        Group {
+            if data?.hasCheckedInToday != true {
+                SiriTipView(intent: CheckInIntent(), isVisible: $showSiriTip)
+            }
+        }
+    }
+
     private var insightCard: some View {
         HStack(spacing: 12) {
             Image(systemName: "sparkle")
                 .foregroundStyle(.green)
                 .font(.body)
+                .accessibilityHidden(true)
             Text(insightMessages[insightIndex % insightMessages.count])
                 .font(.subheadline)
                 .foregroundStyle(colorScheme == .dark ? .white.opacity(0.55) : .secondary)

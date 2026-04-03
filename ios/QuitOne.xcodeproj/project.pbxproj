@@ -64,6 +64,13 @@
 			);
 			target = XX95A2583B91C71DD70364XX /* QuitOneWidget */;
 		};
+		XXA1B2C3D4E5F6G7H8I9J0XX /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 105FC5792E9EAD3100EA8BCF /* QuitOne */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -71,6 +78,9 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = QuitOne;
 			sourceTree = "<group>";
+			exceptions = (
+				XXA1B2C3D4E5F6G7H8I9J0XX /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
 		};
 		105FC58C2E9EAD3200EA8BCF /* QuitOneTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -502,6 +512,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = QuitOne/Info.plist;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -536,6 +547,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = QuitOne/Info.plist;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

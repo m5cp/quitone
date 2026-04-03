@@ -83,6 +83,10 @@ struct SmallWidgetView: View {
         "$\(Int(entry.moneySaved)) saved"
     }
 
+    private var isCheckedIn: Bool {
+        entry.statusText == "Still on track"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(entry.habitName)
@@ -102,17 +106,28 @@ struct SmallWidgetView: View {
                 .minimumScaleFactor(0.6)
 
             Spacer()
-                .frame(height: 8)
+                .frame(height: 4)
 
-            Text(savedText)
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+            if isCheckedIn {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 11))
+                    Text(savedText)
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                }
                 .foregroundStyle(.green)
+            } else {
+                Text(savedText)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.green)
 
-            Text(entry.statusText)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white.opacity(0.5))
+                Text(entry.statusText)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .widgetURL(URL(string: "quitone://checkin"))
         .containerBackground(for: .widget) {
             ZStack {
                 Color.black
@@ -136,6 +151,10 @@ struct MediumWidgetView: View {
         "$\(Int(entry.moneySaved)) saved"
     }
 
+    private var isCheckedIn: Bool {
+        entry.statusText == "Still on track"
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
@@ -143,9 +162,19 @@ struct MediumWidgetView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
 
-                Text(entry.statusText)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.5))
+                if isCheckedIn {
+                    HStack(spacing: 5) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 12))
+                        Text("On track today")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundStyle(.green)
+                } else {
+                    Text(entry.statusText)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
 
                 Spacer()
 
@@ -173,6 +202,7 @@ struct MediumWidgetView: View {
                     .minimumScaleFactor(0.5)
             }
         }
+        .widgetURL(URL(string: "quitone://checkin"))
         .containerBackground(for: .widget) {
             ZStack {
                 Color.black

@@ -27,6 +27,7 @@ struct ContentView: View {
     @State private var store = HabitStore()
     @State private var storeVM = StoreViewModel()
     @State private var selectedTab: QuitOneTab = .home
+    @State private var widgetCheckInTrigger: Int = 0
     @AppStorage("appearanceMode") private var appearanceMode: Int = 0
 
     private var resolvedColorScheme: ColorScheme? {
@@ -40,7 +41,7 @@ struct ContentView: View {
     var body: some View {
         if store.hasCompletedOnboarding {
             TabView(selection: $selectedTab) {
-                HomeView(store: store, storeVM: storeVM)
+                HomeView(store: store, storeVM: storeVM, widgetCheckInTrigger: widgetCheckInTrigger)
                     .tag(QuitOneTab.home)
                     .tabItem {
                         Image(systemName: QuitOneTab.home.icon)
@@ -68,10 +69,24 @@ struct ContentView: View {
             .onChange(of: storeVM.isPremium) { _, newValue in
                 store.isPremium = newValue
             }
+            .onOpenURL { url in
+                handleDeepLink(url)
+            }
             .preferredColorScheme(resolvedColorScheme)
         } else {
             OnboardingView(store: store)
                 .preferredColorScheme(resolvedColorScheme)
+        }
+    }
+
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme == "quitone" else { return }
+        if url.host == "checkin" {
+            selectedTab = .home
+            if store.habit?.hasCheckedInToday != true {
+                store.checkInToday()
+                widgetCheckInTrigger += 1
+            }
         }
     }
 }
