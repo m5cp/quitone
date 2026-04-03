@@ -206,13 +206,27 @@ struct ProfileView: View {
             }
 
             NavigationLink {
+                TermsOfUseView()
+            } label: {
+                Label("Terms of Use", systemImage: "doc.text.fill")
+                    .foregroundStyle(.blue)
+            }
+
+            NavigationLink {
                 DisclaimerView()
             } label: {
                 Label("Disclaimer", systemImage: "info.circle.fill")
                     .foregroundStyle(.blue)
             }
+
+            NavigationLink {
+                AccessibilityStatementView()
+            } label: {
+                Label("Accessibility", systemImage: "accessibility")
+                    .foregroundStyle(.blue)
+            }
         } header: {
-            Text("Help")
+            Text("Legal & Help")
         }
         .listRowBackground(listRowBg)
     }
