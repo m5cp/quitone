@@ -12,7 +12,8 @@ struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @State private var selectedTier: PlanTier = .yearly
-    @State private var appearAnimation: Bool = false
+    @State private var appeared: Bool = false
+    @State private var glowPhase: Bool = false
 
     private var monthlyPackage: Package? {
         storeVM.offerings?.current?.package(identifier: "$rc_monthly")
@@ -35,226 +36,250 @@ struct PaywallView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        ZStack(alignment: .bottom) {
             ScrollView {
                 VStack(spacing: 0) {
-                    headerSection
-                        .padding(.top, 24)
-                        .padding(.bottom, 24)
-
-                    featuresSection
-                        .padding(.bottom, 24)
-
-                    competitorSection
-                        .padding(.bottom, 24)
-
-                    planCardsSection
-                        .padding(.bottom, 24)
-
-                    purchaseButton
-                        .padding(.bottom, 16)
-
-                    footerSection
-                        .padding(.bottom, 32)
+                    heroHeader
+                    featuresList
+                        .padding(.top, 32)
+                    planPicker
+                        .padding(.top, 32)
                 }
                 .padding(.horizontal, 20)
+                .padding(.bottom, 200)
             }
-            .background(backgroundGradient)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title3)
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+            .scrollIndicators(.hidden)
+
+            bottomCTA
+        }
+        .background(background)
+        .overlay(alignment: .topTrailing) {
+            closeButton
+        }
+        .alert("Error", isPresented: .init(
+            get: { storeVM.error != nil },
+            set: { if !$0 { storeVM.error = nil } }
+        )) {
+            Button("OK") { storeVM.error = nil }
+        } message: {
+            Text(storeVM.error ?? "")
+        }
+        .onChange(of: storeVM.isPremium) { _, isPremium in
+            if isPremium { dismiss() }
+        }
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.6).delay(0.1)) {
+                appeared = true
             }
-            .alert("Error", isPresented: .init(
-                get: { storeVM.error != nil },
-                set: { if !$0 { storeVM.error = nil } }
-            )) {
-                Button("OK") { storeVM.error = nil }
-            } message: {
-                Text(storeVM.error ?? "")
-            }
-            .onChange(of: storeVM.isPremium) { _, isPremium in
-                if isPremium { dismiss() }
-            }
-            .onAppear {
-                withAnimation(.easeOut(duration: 0.5).delay(0.15)) {
-                    appearAnimation = true
-                }
+            withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
+                glowPhase = true
             }
         }
     }
 
-    private var backgroundGradient: some View {
-        LinearGradient(
-            colors: colorScheme == .dark
-                ? [Color(red: 0.04, green: 0.06, blue: 0.04), Color(red: 0.02, green: 0.02, blue: 0.03)]
-                : [Color(red: 0.95, green: 0.98, blue: 0.95), .white],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .ignoresSafeArea()
+    private var closeButton: some View {
+        Button { dismiss() } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(colorScheme == .dark ? .white.opacity(0.5) : .secondary)
+                .frame(width: 30, height: 30)
+                .background(.ultraThinMaterial)
+                .clipShape(.circle)
+        }
+        .padding(.top, 16)
+        .padding(.trailing, 20)
     }
 
-    private var headerSection: some View {
-        VStack(spacing: 14) {
+    private var background: some View {
+        ZStack {
+            (colorScheme == .dark ? Color(red: 0.03, green: 0.03, blue: 0.04) : Color(.systemBackground))
+                .ignoresSafeArea()
+
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color.green.opacity(colorScheme == .dark ? 0.12 : 0.08),
+                            Color.green.opacity(0)
+                        ],
+                        center: .center,
+                        startRadius: 10,
+                        endRadius: 240
+                    )
+                )
+                .frame(width: 480, height: 480)
+                .offset(y: -220)
+                .scaleEffect(glowPhase ? 1.1 : 0.9)
+                .ignoresSafeArea()
+        }
+    }
+
+    private var heroHeader: some View {
+        VStack(spacing: 20) {
+            Spacer().frame(height: 44)
+
             ZStack {
                 Circle()
-                    .fill(Color.green.opacity(0.12))
-                    .frame(width: 80, height: 80)
-                Image(systemName: "star.circle.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.green)
-                    .symbolEffect(.bounce, value: appearAnimation)
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                Color.green.opacity(0.25),
+                                Color.green.opacity(0.05),
+                                Color.clear
+                            ],
+                            center: .center,
+                            startRadius: 20,
+                            endRadius: 60
+                        )
+                    )
+                    .frame(width: 120, height: 120)
+                    .scaleEffect(glowPhase ? 1.15 : 1.0)
+
+                Image(systemName: "leaf.fill")
+                    .font(.system(size: 40, weight: .medium))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.green, Color(red: 0.2, green: 0.8, blue: 0.4)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .symbolEffect(.bounce, value: appeared)
             }
+            .opacity(appeared ? 1 : 0)
+            .offset(y: appeared ? 0 : 15)
 
-            VStack(spacing: 6) {
-                Text("QuitOne Pro")
-                    .font(.title.bold())
-
-                Text("Invest in your journey. Save more than you spend.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+            VStack(spacing: 10) {
+                Text("Unlock Your\nFull Journey")
+                    .font(.system(size: 32, weight: .bold))
                     .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+
+                Text("The tools to stay on track, for good.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
             }
+            .opacity(appeared ? 1 : 0)
+            .offset(y: appeared ? 0 : 10)
         }
     }
 
-    private var featuresSection: some View {
-        VStack(spacing: 0) {
-            featureRow(icon: "nosign", color: .red, title: "Ad-Free Experience")
-            divider
-            featureRow(icon: "calendar.badge.clock", color: .blue, title: "Full Journey History & Calendar")
-            divider
-            featureRow(icon: "chart.bar.doc.horizontal", color: .orange, title: "Weekly/Monthly Summaries")
-            divider
-            featureRow(icon: "chart.line.uptrend.xyaxis", color: .purple, title: "Advanced Trends & Insights")
-            divider
-            featureRow(icon: "doc.text", color: .green, title: "Export Progress (PDF)")
+    private var featuresList: some View {
+        VStack(spacing: 16) {
+            featureItem(
+                icon: "nosign",
+                gradient: [Color(red: 1.0, green: 0.35, blue: 0.35), Color(red: 0.9, green: 0.2, blue: 0.3)],
+                title: "Ad-Free Experience",
+                subtitle: "Clean, distraction-free tracking"
+            )
+            featureItem(
+                icon: "calendar",
+                gradient: [Color(red: 0.3, green: 0.5, blue: 1.0), Color(red: 0.2, green: 0.4, blue: 0.9)],
+                title: "Full Journey History",
+                subtitle: "Calendar view & complete timeline"
+            )
+            featureItem(
+                icon: "chart.bar.fill",
+                gradient: [Color.orange, Color(red: 1.0, green: 0.55, blue: 0.0)],
+                title: "Weekly & Monthly Summaries",
+                subtitle: "See trends and patterns"
+            )
+            featureItem(
+                icon: "chart.line.uptrend.xyaxis",
+                gradient: [Color.purple, Color(red: 0.6, green: 0.3, blue: 0.9)],
+                title: "Advanced Insights",
+                subtitle: "Personalized progress analytics"
+            )
+            featureItem(
+                icon: "square.and.arrow.up",
+                gradient: [Color.green, Color(red: 0.2, green: 0.75, blue: 0.4)],
+                title: "Export Progress",
+                subtitle: "Share your journey as PDF"
+            )
         }
-        .padding(.vertical, 4)
-        .background(cardBg)
-        .clipShape(.rect(cornerRadius: 16))
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 20)
     }
 
-    private var divider: some View {
-        Rectangle()
-            .fill(Color.primary.opacity(0.06))
-            .frame(height: 0.5)
-            .padding(.leading, 56)
-    }
-
-    private func featureRow(icon: String, color: Color, title: String) -> some View {
-        HStack(spacing: 14) {
+    private func featureItem(icon: String, gradient: [Color], title: String, subtitle: String) -> some View {
+        HStack(spacing: 16) {
             Image(systemName: icon)
-                .font(.body.weight(.medium))
-                .foregroundStyle(color)
-                .frame(width: 24, height: 24)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 40, height: 40)
+                .background(
+                    LinearGradient(colors: gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+                .clipShape(.rect(cornerRadius: 10))
 
-            Text(title)
-                .font(.subheadline.weight(.medium))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             Spacer()
 
-            Image(systemName: "checkmark")
-                .font(.caption.bold())
+            Image(systemName: "checkmark.circle.fill")
+                .font(.body)
                 .foregroundStyle(.green)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 13)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            colorScheme == .dark
+                ? Color.white.opacity(0.05)
+                : Color(.secondarySystemGroupedBackground)
+        )
+        .clipShape(.rect(cornerRadius: 14))
     }
 
-    private var competitorSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "chart.bar.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.green)
-                Text("How QuitOne Compares")
-                    .font(.subheadline.weight(.semibold))
-            }
-
-            VStack(spacing: 8) {
-                competitorRow(name: "Leading Habit Tracker", price: "$6.99/mo", opacity: 0.5)
-                competitorRow(name: "Popular Wellness App", price: "$14.99/mo", opacity: 0.35)
-                HStack {
-                    HStack(spacing: 6) {
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.green)
-                        Text("QuitOne Pro")
-                            .font(.footnote.weight(.bold))
-                            .foregroundStyle(.green)
-                    }
-                    Spacer()
-                    Text("from $1.99/mo")
-                        .font(.footnote.weight(.bold))
-                        .foregroundStyle(.green)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color.green.opacity(colorScheme == .dark ? 0.12 : 0.08))
-                .clipShape(.rect(cornerRadius: 10))
-            }
-
-            Text("Up to 75% less than comparable apps")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(16)
-        .background(cardBg)
-        .clipShape(.rect(cornerRadius: 16))
-    }
-
-    private func competitorRow(name: String, price: String, opacity: Double) -> some View {
-        HStack {
-            Text(name)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(price)
-                .font(.footnote.weight(.medium))
-                .foregroundStyle(.primary.opacity(opacity))
-                .strikethrough(color: .red.opacity(0.6))
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-    }
-
-    private var planCardsSection: some View {
-        VStack(spacing: 10) {
+    private var planPicker: some View {
+        VStack(spacing: 12) {
             if storeVM.isLoading {
                 ProgressView()
-                    .frame(height: 180)
+                    .frame(height: 200)
             } else if storeVM.offerings?.current != nil {
-                planCard(
-                    tier: .monthly,
-                    title: "Monthly",
-                    price: monthlyPackage?.storeProduct.localizedPriceString ?? "$1.99",
-                    subtitle: "per month",
-                    badge: nil
-                )
+                HStack(spacing: 10) {
+                    planTile(
+                        tier: .monthly,
+                        label: "Monthly",
+                        price: monthlyPackage?.storeProduct.localizedPriceString ?? "$1.99",
+                        perUnit: "/mo",
+                        badge: nil
+                    )
 
-                planCard(
-                    tier: .yearly,
-                    title: "Yearly",
-                    price: yearlyPackage?.storeProduct.localizedPriceString ?? "$9.99",
-                    subtitle: yearlyPerMonthText,
-                    badge: savingsBadgeText
-                )
+                    planTile(
+                        tier: .yearly,
+                        label: "Yearly",
+                        price: yearlyPackage?.storeProduct.localizedPriceString ?? "$9.99",
+                        perUnit: "/yr",
+                        badge: savingsBadgeText
+                    )
 
-                planCard(
-                    tier: .lifetime,
-                    title: "Lifetime",
-                    price: lifetimePackage?.storeProduct.localizedPriceString ?? "$19.99",
-                    subtitle: "one-time purchase",
-                    badge: "BEST VALUE"
-                )
+                    planTile(
+                        tier: .lifetime,
+                        label: "Lifetime",
+                        price: lifetimePackage?.storeProduct.localizedPriceString ?? "$19.99",
+                        perUnit: "",
+                        badge: "BEST"
+                    )
+                }
+
+                if selectedTier == .yearly {
+                    Text("Just \(yearlyPerMonthText) — \(savingsBadgeText.lowercased()) vs monthly")
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                } else if selectedTier == .lifetime {
+                    Text("One purchase. Yours forever.")
+                        .font(.caption)
+                        .foregroundStyle(Color.orange)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             } else {
                 ContentUnavailableView(
                     "Unable to Load Plans",
@@ -263,6 +288,170 @@ struct PaywallView: View {
                 )
                 .frame(height: 160)
             }
+        }
+        .animation(.snappy, value: selectedTier)
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 20)
+    }
+
+    private func planTile(tier: PlanTier, label: String, price: String, perUnit: String, badge: String?) -> some View {
+        let isSelected = selectedTier == tier
+
+        return Button {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                selectedTier = tier
+            }
+        } label: {
+            VStack(spacing: 8) {
+                if let badge {
+                    Text(badge)
+                        .font(.system(size: 9, weight: .heavy))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(
+                            tier == .lifetime
+                                ? AnyShapeStyle(Color.orange.gradient)
+                                : AnyShapeStyle(Color.green.gradient)
+                        )
+                        .clipShape(.capsule)
+                } else {
+                    Text(" ")
+                        .font(.system(size: 9, weight: .heavy))
+                        .padding(.vertical, 3)
+                        .opacity(0)
+                }
+
+                Text(label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+
+                HStack(alignment: .firstTextBaseline, spacing: 1) {
+                    Text(price)
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundStyle(isSelected ? .green : .primary)
+                    if !perUnit.isEmpty {
+                        Text(perUnit)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 18)
+            .padding(.horizontal, 4)
+            .background(
+                isSelected
+                    ? (colorScheme == .dark
+                        ? Color.green.opacity(0.10)
+                        : Color.green.opacity(0.06))
+                    : (colorScheme == .dark
+                        ? Color.white.opacity(0.04)
+                        : Color(.secondarySystemGroupedBackground))
+            )
+            .clipShape(.rect(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(
+                        isSelected
+                            ? Color.green.opacity(0.6)
+                            : Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.06),
+                        lineWidth: isSelected ? 2 : 1
+                    )
+            )
+            .scaleEffect(isSelected ? 1.02 : 1.0)
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: selectedTier)
+    }
+
+    private var bottomCTA: some View {
+        VStack(spacing: 12) {
+            Button {
+                guard let package = selectedPackage else { return }
+                Task { await storeVM.purchase(package: package) }
+            } label: {
+                HStack(spacing: 8) {
+                    if storeVM.isPurchasing {
+                        ProgressView()
+                            .tint(.white)
+                    }
+                    Text(purchaseButtonText)
+                        .font(.headline)
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.22, green: 0.78, blue: 0.38),
+                            Color(red: 0.16, green: 0.68, blue: 0.30)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .clipShape(.rect(cornerRadius: 16))
+                .shadow(color: .green.opacity(colorScheme == .dark ? 0.25 : 0.2), radius: 16, y: 6)
+            }
+            .disabled(storeVM.isPurchasing || selectedPackage == nil)
+            .sensoryFeedback(.impact(weight: .medium), trigger: storeVM.isPurchasing)
+
+            HStack(spacing: 16) {
+                Button {
+                    Task { await storeVM.restore() }
+                } label: {
+                    Text("Restore Purchases")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+
+                Text("·")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+
+                Link("Terms", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+
+                Text("·")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+
+                Link("Privacy", destination: URL(string: "https://www.apple.com/privacy/")!)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+
+            if selectedTier != .lifetime {
+                Text("Cancel anytime. No commitment.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
+        .background(
+            Rectangle()
+                .fill(
+                    colorScheme == .dark
+                        ? Color(red: 0.03, green: 0.03, blue: 0.04)
+                        : Color(.systemBackground)
+                )
+                .shadow(color: .black.opacity(colorScheme == .dark ? 0.4 : 0.08), radius: 20, y: -8)
+                .ignoresSafeArea(edges: .bottom)
+        )
+    }
+
+    private var purchaseButtonText: String {
+        switch selectedTier {
+        case .monthly: return "Start Monthly Plan"
+        case .yearly: return "Start Yearly Plan"
+        case .lifetime: return "Get Lifetime Access"
         }
     }
 
@@ -291,167 +480,5 @@ struct PaywallView: View {
             return "SAVE \(Int(truncating: savings as NSDecimalNumber))%"
         }
         return "SAVE 58%"
-    }
-
-    private func planCard(tier: PlanTier, title: String, price: String, subtitle: String, badge: String?) -> some View {
-        let isSelected = selectedTier == tier
-
-        return Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                selectedTier = tier
-            }
-        } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .stroke(isSelected ? Color.green : Color.primary.opacity(0.2), lineWidth: 2)
-                        .frame(width: 24, height: 24)
-                    if isSelected {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 14, height: 14)
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 8) {
-                        Text(title)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
-
-                        if let badge {
-                            Text(badge)
-                                .font(.system(size: 10, weight: .heavy))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 3)
-                                .background(
-                                    tier == .lifetime
-                                        ? Color.orange.gradient
-                                        : Color.green.gradient
-                                )
-                                .clipShape(.capsule)
-                        }
-                    }
-
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Text(price)
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(isSelected ? .green : .primary)
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 16)
-            .background(
-                isSelected
-                    ? Color.green.opacity(colorScheme == .dark ? 0.10 : 0.06)
-                    : cardBg
-            )
-            .clipShape(.rect(cornerRadius: 14))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(
-                        isSelected ? Color.green.opacity(0.5) : Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.06),
-                        lineWidth: isSelected ? 1.5 : 1
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-        .sensoryFeedback(.selection, trigger: selectedTier)
-    }
-
-    private var purchaseButton: some View {
-        VStack(spacing: 14) {
-            Button {
-                guard let package = selectedPackage else { return }
-                Task { await storeVM.purchase(package: package) }
-            } label: {
-                HStack(spacing: 8) {
-                    if storeVM.isPurchasing {
-                        ProgressView()
-                            .tint(.white)
-                    }
-                    Text(purchaseButtonText)
-                        .font(.headline)
-                }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
-                .background(Color.green.gradient)
-                .clipShape(.rect(cornerRadius: 14))
-                .shadow(color: .green.opacity(colorScheme == .dark ? 0.2 : 0.15), radius: 12, y: 4)
-            }
-            .disabled(storeVM.isPurchasing || selectedPackage == nil)
-            .sensoryFeedback(.impact(weight: .medium), trigger: storeVM.isPurchasing)
-
-            Button {
-                Task { await storeVM.restore() }
-            } label: {
-                Text("Restore Purchases")
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private var purchaseButtonText: String {
-        switch selectedTier {
-        case .monthly: return "Start Monthly Plan"
-        case .yearly: return "Start Yearly Plan"
-        case .lifetime: return "Unlock Lifetime Access"
-        }
-    }
-
-    private var footerSection: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 12) {
-                Image(systemName: "lightbulb.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(.yellow)
-
-                Text("Quitting a habit saves the average person over $200/month. This upgrade pays for itself in hours.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(14)
-            .background(
-                colorScheme == .dark
-                    ? Color.yellow.opacity(0.06)
-                    : Color.yellow.opacity(0.08)
-            )
-            .clipShape(.rect(cornerRadius: 12))
-
-            VStack(spacing: 4) {
-                if selectedTier != .lifetime {
-                    Text("Cancel anytime. No commitment.")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-
-                HStack(spacing: 4) {
-                    Link("Terms of Use", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text("·")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                    Link("Privacy Policy", destination: URL(string: "https://www.apple.com/privacy/")!)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-
-    private var cardBg: Color {
-        colorScheme == .dark
-            ? Color(red: 0.10, green: 0.10, blue: 0.12)
-            : Color(.secondarySystemGroupedBackground)
     }
 }
