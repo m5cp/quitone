@@ -28,6 +28,7 @@ struct ContentView: View {
     @State private var storeVM = StoreViewModel()
     @State private var selectedTab: QuitOneTab = .home
     @State private var widgetCheckInTrigger: Int = 0
+    @State private var showSplash: Bool = true
     @AppStorage("appearanceMode") private var appearanceMode: Int = 0
 
     private var resolvedColorScheme: ColorScheme? {
@@ -39,43 +40,55 @@ struct ContentView: View {
     }
 
     var body: some View {
-        if store.hasCompletedOnboarding {
-            TabView(selection: $selectedTab) {
-                HomeView(store: store, storeVM: storeVM, widgetCheckInTrigger: widgetCheckInTrigger)
-                    .tag(QuitOneTab.home)
-                    .tabItem {
-                        Image(systemName: QuitOneTab.home.icon)
-                        Text(QuitOneTab.home.title)
-                    }
+        ZStack {
+            if store.hasCompletedOnboarding {
+                TabView(selection: $selectedTab) {
+                    HomeView(store: store, storeVM: storeVM, widgetCheckInTrigger: widgetCheckInTrigger)
+                        .tag(QuitOneTab.home)
+                        .tabItem {
+                            Image(systemName: QuitOneTab.home.icon)
+                            Text(QuitOneTab.home.title)
+                        }
 
-                HabitProgressView(store: store, storeVM: storeVM)
-                    .tag(QuitOneTab.progress)
-                    .tabItem {
-                        Image(systemName: QuitOneTab.progress.icon)
-                        Text(QuitOneTab.progress.title)
-                    }
+                    HabitProgressView(store: store, storeVM: storeVM)
+                        .tag(QuitOneTab.progress)
+                        .tabItem {
+                            Image(systemName: QuitOneTab.progress.icon)
+                            Text(QuitOneTab.progress.title)
+                        }
 
-                ProfileView(store: store, storeVM: storeVM)
-                    .tag(QuitOneTab.profile)
-                    .tabItem {
-                        Image(systemName: QuitOneTab.profile.icon)
-                        Text(QuitOneTab.profile.title)
-                    }
-            }
-            .tint(.green)
-            .onAppear {
-                store.syncWidget()
-            }
-            .onChange(of: storeVM.isPremium) { _, newValue in
-                store.isPremium = newValue
-            }
-            .onOpenURL { url in
-                handleDeepLink(url)
-            }
-            .preferredColorScheme(resolvedColorScheme)
-        } else {
-            OnboardingView(store: store)
+                    ProfileView(store: store, storeVM: storeVM)
+                        .tag(QuitOneTab.profile)
+                        .tabItem {
+                            Image(systemName: QuitOneTab.profile.icon)
+                            Text(QuitOneTab.profile.title)
+                        }
+                }
+                .tint(.green)
+                .onAppear {
+                    store.syncWidget()
+                }
+                .onChange(of: storeVM.isPremium) { _, newValue in
+                    store.isPremium = newValue
+                }
+                .onOpenURL { url in
+                    handleDeepLink(url)
+                }
                 .preferredColorScheme(resolvedColorScheme)
+            } else {
+                OnboardingView(store: store)
+                    .preferredColorScheme(resolvedColorScheme)
+            }
+
+            if showSplash {
+                SplashView {
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        showSplash = false
+                    }
+                }
+                .transition(.opacity)
+                .zIndex(100)
+            }
         }
     }
 

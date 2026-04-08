@@ -70,6 +70,7 @@ struct HomeView: View {
     let storeVM: StoreViewModel
     let widgetCheckInTrigger: Int
     @State private var checkInBounce: Int = 0
+    @State private var confettiTrigger: Int = 0
     @State private var showSlipConfirm: Bool = false
     @State private var insightIndex: Int = 0
     @State private var showShareCard: Bool = false
@@ -79,6 +80,8 @@ struct HomeView: View {
     @State private var now: Date = Date()
     @State private var visibilityHaptic: Int = 0
     @State private var showSiriTip: Bool = true
+    @State private var appeared: Bool = false
+    @State private var heroNumberBounce: Int = 0
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -88,19 +91,39 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 28) {
-                    headerSection
-                    heroCard
-                    actionButtons
-                    siriTipSection
-                    savingsInsightCard
-                    shareButton
-                    insightCard
+            ZStack(alignment: .center) {
+                ScrollView {
+                    VStack(spacing: 28) {
+                        headerSection
+                            .opacity(appeared ? 1 : 0)
+                            .offset(y: appeared ? 0 : 15)
+
+                        heroCard
+                            .opacity(appeared ? 1 : 0)
+                            .offset(y: appeared ? 0 : 20)
+
+                        actionButtons
+                            .opacity(appeared ? 1 : 0)
+                            .offset(y: appeared ? 0 : 15)
+
+                        siriTipSection
+                        savingsInsightCard
+                            .opacity(appeared ? 1 : 0)
+                            .offset(y: appeared ? 0 : 10)
+
+                        shareButton
+                            .opacity(appeared ? 1 : 0)
+
+                        insightCard
+                            .opacity(appeared ? 1 : 0)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 100)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 100)
+
+                ConfettiView(trigger: confettiTrigger)
+                    .allowsHitTesting(false)
             }
             .background(screenBackground)
             .sensoryFeedback(.success, trigger: checkInBounce)
@@ -125,6 +148,10 @@ struct HomeView: View {
             .onAppear {
                 insightIndex = Int.random(in: 0..<insightMessages.count)
                 now = Date()
+                guard !appeared else { return }
+                withAnimation(reduceMotion ? .none : .spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
+                    appeared = true
+                }
             }
             .onReceive(timer) { _ in
                 now = Date()
@@ -222,17 +249,28 @@ struct HomeView: View {
 
     private var heroCard: some View {
         VStack(spacing: 20) {
-            VStack(spacing: 6) {
-                Text("DAY")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(colorScheme == .dark ? .white.opacity(0.4) : .secondary)
-                    .tracking(4)
+            ZStack {
+                StreakFlameView(streakDays: data?.currentRunDays ?? 0)
 
-                Text("\(data?.currentRunDays ?? 0)")
-                    .font(.system(size: 88, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.green)
-                    .contentTransition(.numericText())
-                    .shadow(color: .green.opacity(colorScheme == .dark ? 0.25 : 0.0), radius: 20, y: 4)
+                VStack(spacing: 6) {
+                    Text("DAY")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(colorScheme == .dark ? .white.opacity(0.4) : .secondary)
+                        .tracking(4)
+
+                    Text("\(data?.currentRunDays ?? 0)")
+                        .font(.system(size: 88, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.green)
+                        .contentTransition(.numericText())
+                        .shadow(color: .green.opacity(colorScheme == .dark ? 0.25 : 0.0), radius: 20, y: 4)
+                        .scaleEffect(heroNumberBounce > 0 ? 1.0 : 1.0)
+                        .phaseAnimator([false, true], trigger: heroNumberBounce) { content, phase in
+                            content
+                                .scaleEffect(phase ? 1.08 : 1.0)
+                        } animation: { _ in
+                            .spring(response: 0.25, dampingFraction: 0.4)
+                        }
+                }
             }
 
             if !elapsedText.isEmpty {
@@ -370,6 +408,8 @@ struct HomeView: View {
                         showCheckInConfirmation = true
                     }
                     checkInBounce += 1
+                    confettiTrigger += 1
+                    heroNumberBounce += 1
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                         withAnimation(.easeOut(duration: 0.3)) {
                             showCheckInConfirmation = false
