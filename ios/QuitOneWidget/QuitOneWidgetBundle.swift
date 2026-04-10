@@ -5,5 +5,6 @@ import SwiftUI
 struct QuitOneWidgetBundle: WidgetBundle {
     var body: some Widget {
         QuitOneWidget()
+        StreakLiveActivity()
     }
 }

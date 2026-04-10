@@ -1,9 +1,11 @@
 import SwiftUI
+import ActivityKit
 
 struct ProfileView: View {
     let store: HabitStore
     let storeVM: StoreViewModel
     @State private var showResetAlert: Bool = false
+    @State private var liveActivityEnabled: Bool = LiveActivityManager.shared.isActive
     @State private var showEditSpend: Bool = false
     @State private var showEditDate: Bool = false
     @State private var showEditHabit: Bool = false
@@ -155,6 +157,19 @@ struct ProfileView: View {
                     .foregroundStyle(.primary)
             }
             .tint(.green)
+
+            Toggle(isOn: $liveActivityEnabled) {
+                Label("Lock Screen Streak", systemImage: "platter.filled.bottom.and.arrow.down.iphone")
+                    .foregroundStyle(.primary)
+            }
+            .tint(.green)
+            .onChange(of: liveActivityEnabled) { _, newValue in
+                if newValue {
+                    store.syncLiveActivity()
+                } else {
+                    LiveActivityManager.shared.endActivity()
+                }
+            }
 
             Button {
                 showPaywall = true

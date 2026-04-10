@@ -67,6 +67,10 @@ struct ContentView: View {
                 .tint(.green)
                 .onAppear {
                     store.syncWidget()
+                    WeeklySummaryNotification.scheduleIfNeeded(store: store)
+                    if let data = store.habit {
+                        SpotlightIndexer.indexHabit(data)
+                    }
                 }
                 .onChange(of: storeVM.isPremium) { _, newValue in
                     store.isPremium = newValue

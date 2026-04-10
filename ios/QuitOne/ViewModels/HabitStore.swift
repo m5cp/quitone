@@ -2,6 +2,7 @@ import SwiftUI
 import UserNotifications
 import WidgetKit
 import RevenueCat
+import CoreSpotlight
 
 @Observable
 @MainActor
@@ -77,6 +78,9 @@ class HabitStore {
         UserDefaults.standard.set(false, forKey: onboardingKey)
         UserDefaults.standard.removeObject(forKey: habitKey)
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        WeeklySummaryNotification.cancel()
+        LiveActivityManager.shared.endActivity()
+        SpotlightIndexer.removeAll()
     }
 
     func statusForDate(_ date: Date) -> DayStatus? {
@@ -293,11 +297,37 @@ class HabitStore {
         )
     }
 
+    func syncLiveActivity() {
+        guard let data = habit else { return }
+        let status: String
+        if data.todayStatus == .slipped {
+            status = "Fresh start tomorrow"
+        } else if data.hasCheckedInToday {
+            status = "On track today"
+        } else if data.currentRunDays > 0 {
+            status = "Check in today"
+        } else {
+            status = "Start today"
+        }
+        LiveActivityManager.shared.startOrUpdate(
+            habitName: data.habitName,
+            currentRunDays: data.currentRunDays,
+            totalSaved: Int(data.totalSaved),
+            statusText: status
+        )
+    }
+
     private func saveData() {
         if let encoded = try? JSONEncoder().encode(habit) {
             UserDefaults.standard.set(encoded, forKey: habitKey)
         }
         syncWidget()
+        if let data = habit {
+            SpotlightIndexer.indexHabit(data)
+        }
+        if LiveActivityManager.shared.isActive {
+            syncLiveActivity()
+        }
     }
 
     private func loadData() {
