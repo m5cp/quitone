@@ -22,7 +22,17 @@ struct OnboardingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            progressBar
+            HStack {
+                progressBar
+                Button {
+                    skipOnboarding()
+                } label: {
+                    Text("Skip")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.trailing, 24)
+            }
 
             ScrollView {
                 VStack(spacing: 32) {
@@ -405,6 +415,17 @@ struct OnboardingView: View {
             completionHistory: []
         )
 
+        store.completeOnboarding(data: data)
+    }
+
+    private func skipOnboarding() {
+        let data = HabitData(
+            habitName: "My Habit",
+            startDate: Date(),
+            goalType: .stop,
+            dailySpend: 10,
+            completionHistory: []
+        )
         store.completeOnboarding(data: data)
     }
 }
