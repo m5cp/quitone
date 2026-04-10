@@ -427,9 +427,10 @@ struct PaywallView: View {
             }
 
             if selectedTier != .lifetime {
-                Text("Cancel anytime. No commitment.")
+                Text(subscriptionDisclosure)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
             }
         }
         .padding(.horizontal, 20)
@@ -468,6 +469,12 @@ struct PaywallView: View {
             }
         }
         return "$0.83/mo"
+    }
+
+    private var subscriptionDisclosure: String {
+        let period = selectedTier == .monthly ? "month" : "year"
+        let price = selectedPackage?.storeProduct.localizedPriceString ?? ""
+        return "Subscription auto-renews for \(price)/\(period) unless cancelled at least 24 hours before the end of the current period. Manage in Settings > Apple ID > Subscriptions."
     }
 
     private var savingsBadgeText: String {

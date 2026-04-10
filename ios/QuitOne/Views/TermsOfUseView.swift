@@ -27,11 +27,11 @@ struct TermsOfUseView: View {
                     termsSection("User Data & Privacy",
                         "All habit data is stored locally on your device using App Groups shared storage. Data is shared between the main app, widgets, and Siri Shortcuts entirely on-device. No personal data is transmitted to external servers. See our Privacy Policy for full details.")
 
-                    termsSection("In-App Purchases",
-                        "QuitOne offers a Lifetime Pro upgrade as a one-time purchase through the Apple App Store. All purchases are final and processed by Apple. Refund requests must be directed to Apple. Pro features include ad-free experience, full journey history, interactive calendar, weekly/monthly summaries, advanced trends and insights, and PDF export.")
+                    termsSection("In-App Purchases & Subscriptions",
+                        "QuitOne offers premium access through monthly and yearly auto-renewing subscriptions, as well as a one-time lifetime purchase, all through the Apple App Store. Payment will be charged to your Apple ID account at confirmation of purchase. Subscriptions automatically renew unless auto-renew is turned off at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions by going to your Account Settings on the App Store after purchase. All purchases are processed by Apple. Refund requests must be directed to Apple. Pro features include ad-free experience, full journey history, interactive calendar, weekly/monthly summaries, advanced trends and insights, and PDF export.")
 
                     termsSection("Subscription Management",
-                        "Purchase validation is managed through RevenueCat. You can verify your purchase status within the app. For billing inquiries, contact Apple Support or manage purchases through your device Settings.")
+                        "Purchase validation is managed through RevenueCat. You can verify your purchase status within the app. You can manage, cancel, or update your subscriptions in your device Settings > Apple ID > Subscriptions. For billing inquiries, contact Apple Support.")
 
                     termsSection("Widgets & Extensions",
                         "QuitOne provides Home Screen and Lock Screen widgets that display your habit progress. Widget data refreshes periodically according to system schedules and may not always reflect real-time data. Widget availability and behavior are subject to iOS system limitations.")
