@@ -82,6 +82,9 @@ struct HomeView: View {
     @State private var showSiriTip: Bool = true
     @State private var appeared: Bool = false
     @State private var heroNumberBounce: Int = 0
+    @State private var celebrationMilestone: Int? = nil
+    @State private var showPaywallNudge: Bool = false
+    @State private var showPaywall: Bool = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -94,6 +97,8 @@ struct HomeView: View {
             ZStack(alignment: .center) {
                 ScrollView {
                     VStack(spacing: 28) {
+                        welcomeBackBanner
+
                         headerSection
                             .opacity(appeared ? 1 : 0)
                             .offset(y: appeared ? 0 : 15)
@@ -105,6 +110,8 @@ struct HomeView: View {
                         actionButtons
                             .opacity(appeared ? 1 : 0)
                             .offset(y: appeared ? 0 : 15)
+
+                        paywallNudgeCard
 
                         siriTipSection
                         savingsInsightCard
@@ -124,6 +131,23 @@ struct HomeView: View {
 
                 ConfettiView(trigger: confettiTrigger)
                     .allowsHitTesting(false)
+
+                if let milestone = celebrationMilestone {
+                    MilestoneCelebrationView(
+                        milestone: milestone,
+                        onShare: {
+                            celebrationMilestone = nil
+                            showShareCard = true
+                        },
+                        onDismiss: {
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                celebrationMilestone = nil
+                            }
+                        }
+                    )
+                    .transition(.opacity)
+                    .zIndex(50)
+                }
             }
             .background(screenBackground)
             .sensoryFeedback(.success, trigger: checkInBounce)
@@ -169,6 +193,9 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showShareCard) {
                 ShareProgressView(store: store, storeVM: storeVM)
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView(storeVM: storeVM)
             }
         }
     }
@@ -220,6 +247,13 @@ struct HomeView: View {
         .sensoryFeedback(.selection, trigger: visibilityHaptic)
     }
 
+    private var daysSinceLastCheckIn: Int {
+        guard let data else { return 0 }
+        let sorted = data.completionHistory.compactMap { $0.date }.sorted()
+        guard let lastDate = sorted.last else { return 0 }
+        return Calendar.current.dateComponents([.day], from: lastDate, to: Date()).day ?? 0
+    }
+
     private var statusMessage: String {
         guard let data else { return "" }
         if data.todayStatus == .slipped {
@@ -227,6 +261,12 @@ struct HomeView: View {
         }
         if data.hasCheckedInToday {
             return "You're still on track."
+        }
+        if daysSinceLastCheckIn >= 3 && data.totalProgressDays > 0 {
+            return "Welcome back. Pick up where you left off."
+        }
+        if daysSinceLastCheckIn == 2 && data.totalProgressDays > 0 {
+            return "You've been away \u{2014} today's a good day to restart."
         }
         if data.currentRunDays > 0 {
             return onTrackMessages[insightIndex % onTrackMessages.count]
@@ -403,6 +443,7 @@ struct HomeView: View {
                 }
             } else {
                 CheckInButton(label: "I stayed on track today", style: .onTrack) {
+                    let previousRun = data?.currentRunDays ?? 0
                     withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
                         store.checkInToday()
                         showCheckInConfirmation = true
@@ -410,6 +451,31 @@ struct HomeView: View {
                     checkInBounce += 1
                     confettiTrigger += 1
                     heroNumberBounce += 1
+
+                    let newRun = store.habit?.currentRunDays ?? 0
+                    let milestoneSet: Set<Int> = [7, 14, 30, 60, 100, 200, 365]
+                    if milestoneSet.contains(newRun) && newRun != previousRun {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                                celebrationMilestone = newRun
+                            }
+                        }
+                    }
+
+                    ReviewManager.shared.checkAndPrompt(streakDays: newRun)
+
+                    let totalCheckins = store.habit?.totalProgressDays ?? 0
+                    if totalCheckins == 3 && !storeVM.isPremium {
+                        let nudgeDismissed = UserDefaults.standard.bool(forKey: "paywallNudgeDismissed")
+                        if !nudgeDismissed {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                    showPaywallNudge = true
+                                }
+                            }
+                        }
+                    }
+
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                         withAnimation(.easeOut(duration: 0.3)) {
                             showCheckInConfirmation = false
@@ -504,6 +570,96 @@ struct HomeView: View {
         Group {
             if data?.hasCheckedInToday != true {
                 SiriTipView(intent: CheckInIntent(), isVisible: $showSiriTip)
+            }
+        }
+    }
+
+    private var welcomeBackBanner: some View {
+        Group {
+            if let data, !data.hasCheckedInToday, daysSinceLastCheckIn >= 3, data.totalProgressDays > 0 {
+                HStack(spacing: 12) {
+                    Image(systemName: "hand.wave.fill")
+                        .font(.title3)
+                        .foregroundStyle(.orange)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Welcome back!")
+                            .font(.subheadline.weight(.semibold))
+                        Text("You still have \(data.totalProgressDays) days of progress. Let's keep building.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding(16)
+                .background(secondaryCardBackground)
+                .clipShape(.rect(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(cardBorder, lineWidth: 1)
+                )
+                .opacity(appeared ? 1 : 0)
+            }
+        }
+    }
+
+    private var paywallNudgeCard: some View {
+        Group {
+            if showPaywallNudge && !storeVM.isPremium {
+                VStack(spacing: 14) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "sparkles")
+                            .font(.title3)
+                            .foregroundStyle(.orange)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("You're building real momentum")
+                                .font(.subheadline.weight(.semibold))
+                            Text("Unlock insights, history, and premium share cards to keep going strong.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+
+                    HStack(spacing: 12) {
+                        Button {
+                            showPaywall = true
+                        } label: {
+                            Text("See Plans")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.green)
+                                .clipShape(.rect(cornerRadius: 10))
+                        }
+
+                        Button {
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                showPaywallNudge = false
+                            }
+                            UserDefaults.standard.set(true, forKey: "paywallNudgeDismissed")
+                        } label: {
+                            Text("Not Now")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(colorScheme == .dark ? Color.white.opacity(0.06) : Color(.tertiarySystemGroupedBackground))
+                                .clipShape(.rect(cornerRadius: 10))
+                        }
+                    }
+                }
+                .padding(16)
+                .background(secondaryCardBackground)
+                .clipShape(.rect(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                )
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.95).combined(with: .opacity),
+                    removal: .opacity
+                ))
             }
         }
     }
